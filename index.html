@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drag Shift Duel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <script>
+        (function () {
+            try {
+                var loc = window.location;
+                var host = loc && loc.hostname ? loc.hostname : '';
+                var path = loc && loc.pathname ? loc.pathname : '';
+                var isLocalHost = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(host) || host.startsWith('192.168.');
+                if (!window.DRAG_DEV_PROXY && isLocalHost && path && path.startsWith('/drag/')) {
+                    window.DRAG_DEV_PROXY = 'https://server-jeux-millionnaire.onrender.com';
+                }
+                if (!window.DRAG_API_BASE && window.DRAG_DEV_PROXY) {
+                    window.DRAG_API_BASE = window.DRAG_DEV_PROXY;
+                }
+            } catch (err) {
+                /* ignore bootstrap errors */
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="auth-bar">
+        <div class="auth-left">
+            <input id="authEmail" type="email" placeholder="Email" aria-label="Email" />
+            <input id="authPassword" type="password" placeholder="Mot de passe" aria-label="Mot de passe" />
+            <button id="authLogin" class="secondary-button" type="button">Connexion</button>
+            <button id="authRegister" class="secondary-button" type="button">Créer un compte</button>
+            <button id="authForgot" class="secondary-button" type="button">Mot de passe oublié</button>
+        </div>
+        <div class="auth-right">
+            <span id="authStatus" class="auth-status">Invité</span>
+            <button id="authLogout" class="secondary-button" type="button" hidden>Déconnexion</button>
+        </div>
+    </div>
+    <main class="wrapper">
+        <section class="hud">
+            <div class="hud-card">
+                <span class="label">Course</span>
+                <span class="value" id="hudStage">1</span>
+            </div>
+            <div class="hud-card">
+                <span class="label">Argent</span>
+                <span class="value" id="hudCash">0 $</span>
+            </div>
+            <div class="hud-card">
+                <span class="label">Temps</span>
+                <span class="value" id="hudTime">0.00 s</span>
+            </div>
+            <div class="hud-card">
+                <span class="label">Dernier shift</span>
+                <span class="value" id="hudShift">—</span>
+            </div>
+        </section>
+
+        <section class="game-shell">
+            <div class="playfield">
+                <canvas id="trackCanvas" width="960" height="540"></canvas>
+                <div class="overlay">
+                    <div class="status-banner" id="statusBanner">
+                        Maintiens la pédale (flèche haut ou bouton), utilise Nitro (N/X ou bouton) et change de vitesse dans la zone verte.
+                    </div>
+                    <div class="game-actions" id="overlayActions">
+                        <button id="startButton" class="primary-button" type="button">Lancer la course</button>
+                        <button id="garageButton" class="secondary-button" type="button">Garage &amp; Réglages</button>
+                    </div>
+                    <div class="gauge-panel">
+                        <canvas id="rpmCanvas" width="280" height="280"></canvas>
+                        <div class="gear-display">
+                            <span class="gear-label">Rapport</span>
+                            <span class="gear-value" id="gearValue">N</span>
+                        </div>
+                    </div>
+                    <button id="gasButton" class="pedal-button" type="button" aria-label="Pédale d'accélérateur">Accélérer</button>
+                    <button id="nitroButton" class="nitro-button" type="button" aria-label="Activer le nitro">Nitro</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="garageOverlay" class="garage-overlay" hidden>
+        <div class="garage-panel" role="dialog" aria-modal="true" aria-labelledby="garageTitle">
+            <header class="garage-header">
+                <h2 id="garageTitle">Garage &amp; Réglages</h2>
+                <button id="closeGarageButton" class="icon-button" type="button" aria-label="Fermer le garage">&times;</button>
+            </header>
+            <div class="garage-content">
+                <section class="garage-section">
+                    <h3>Étagement des vitesses</h3>
+                    <p class="section-hint">Ajuste les ratios pour espacer ou rapprocher les rapports. 1.00 = valeur d'origine.</p>
+                    <div class="slider-list" id="gearSliderList"></div>
+                </section>
+                <section class="garage-section">
+                    <h3>Moteur</h3>
+                    <div class="slider-group">
+                        <label for="engineSlider">Force moteur</label>
+                        <input id="engineSlider" type="range" min="0.9" max="1.7" step="0.05" value="1.0" />
+                        <span id="engineValue" class="slider-value">1.00×</span>
+                    </div>
+                </section>
+                <section class="garage-section">
+                    <h3>Nitro</h3>
+                    <div class="slider-group">
+                        <label for="nitroPowerSlider">Puissance</label>
+                        <input id="nitroPowerSlider" type="range" min="1" max="1.9" step="0.05" value="1.4" />
+                        <span id="nitroPowerValue" class="slider-value">1.40×</span>
+                    </div>
+                    <div class="slider-group">
+                        <label for="nitroDurationSlider">Durée (s)</label>
+                        <input id="nitroDurationSlider" type="range" min="0.6" max="3" step="0.1" value="1.5" />
+                        <span id="nitroDurationValue" class="slider-value">1.5 s</span>
+                    </div>
+                    <div class="slider-group">
+                        <label for="nitroChargesSlider">Charges</label>
+                        <input id="nitroChargesSlider" type="range" min="1" max="3" step="1" value="1" />
+                        <span id="nitroChargesValue" class="slider-value">1</span>
+                    </div>
+                </section>
+            </div>
+            <footer class="garage-footer">
+                <button id="resetGarageButton" class="secondary-button" type="button">Réinitialiser</button>
+                <button id="applyGarageButton" class="primary-button" type="button">Appliquer</button>
+            </footer>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>
+            Drag Shift Duel — maintiens le moteur dans la zone verte, enchaîne les shifts parfaits et laisse
+            l'adversaire dans ton rétro.
+        </p>
+    </footer>
+
+    <script src="main.js"></script>
+</body>
+</html>
