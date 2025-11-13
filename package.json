@@ -1,0 +1,33 @@
+{
+  "name": "drag-standalone",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "http-server -p 8080 -c-1 --cors",
+    "dev": "http-server -p 8080 -c-1 --cors -o",
+    "deploy": "gh-pages -d www"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nowis30/drag.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nowis30/drag/issues"
+  },
+  "homepage": "https://github.com/nowis30/drag#readme",
+  "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0",
+    "http-server": "^14.1.1",
+    "typescript": "^5.9.3"
+  }
+}

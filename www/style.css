@@ -1,0 +1,668 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Rajdhani', 'Segoe UI', Tahoma, sans-serif;
+    background: radial-gradient(circle at top, #1f2230 0%, #0b0c14 60%, #05060a 100%);
+    color: #f5f7ff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 16px 16px 24px;
+    gap: 16px;
+}
+
+.auth-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: #121528;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.auth-bar input[type="email"], .auth-bar input[type="password"] {
+    background: #0f1120;
+    color: #e9ecff;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    padding: 8px 10px;
+    outline: none;
+}
+.auth-bar .auth-left { display: flex; align-items: center; gap: 8px; }
+.auth-bar .auth-right { display: flex; align-items: center; gap: 8px; }
+.auth-status { opacity: 0.8; font-size: 14px; }
+
+.wrapper {
+    display: grid;
+    grid-template-columns: auto;
+    gap: 24px;
+    align-items: start;
+    width: min(1180px, 100%);
+    position: relative;
+}
+
+@media (min-width: 1100px) {
+    .wrapper {
+        grid-template-columns: 1fr;
+    }
+}
+
+.hud {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+}
+
+.hud-card {
+    background: linear-gradient(145deg, rgba(40, 44, 62, 0.9), rgba(20, 22, 31, 0.9));
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: 0 18px 30px rgba(0, 0, 0, 0.35);
+}
+
+.label {
+    text-transform: uppercase;
+    font-size: 14px;
+    letter-spacing: 0.16em;
+    color: rgba(228, 233, 255, 0.6);
+}
+
+.value {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.game-shell {
+    position: relative;
+    background: rgba(10, 12, 18, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow: 0 24px 45px rgba(5, 6, 10, 0.55);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    width: 100%;
+    max-width: 100vw;
+}
+
+.race-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    max-width: 1000px;
+    padding: 16px;
+    background: rgba(9, 10, 17, 0.4);
+    backdrop-filter: saturate(120%) blur(6px);
+    -webkit-backdrop-filter: saturate(120%) blur(6px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.race-left,
+.race-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.race-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+}
+
+@media (max-width: 768px) {
+    .race-controls { gap: 12px; padding: 12px; }
+    .race-left, .race-right { gap: 12px; }
+    
+    .pedal-button,
+    .nitro-button {
+        width: 90px;
+        height: 90px;
+        font-size: 13px;
+    }
+    
+    .pedal-button.shift-mode {
+        font-size: 18px;
+    }
+    
+    .gauge-panel {
+        padding: 12px;
+    }
+    
+    #rpmCanvas { width: 160px; height: 160px; }
+}
+
+.game-actions {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* Sélecteur de mode de course */
+.mode-select {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    position: absolute;
+    top: 64px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+.mode-select h3 {
+    margin: 0;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: rgba(220,230,255,0.8);
+}
+.mode-select .mode-buttons { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.mode-select .secondary-button.active { border-color: #7cffb0; color: #7cffb0; }
+
+/* Accueil */
+.home-screen {
+    width: 100%;
+    max-width: 1000px;
+    margin-top: 12px;
+    background: rgba(10, 12, 18, 0.85);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 18px 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.home-title { font-size: 28px; font-weight: 800; letter-spacing: 0.06em; text-align: center; }
+.home-sub { text-align: center; opacity: 0.8; }
+.home-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.home-actions .spacer { flex: 1; }
+.home-start { display: flex; justify-content: center; padding-top: 4px; }
+.home-start .primary-button { padding: 16px 46px; }
+
+/* Vision améliorée */
+body.view-large .auth-bar,
+body.view-large .footer { display: none !important; }
+body.view-large .hud { transform: scale(1.06); transform-origin: top left; }
+body.view-hide-gauge .gauge-panel { display: none !important; }
+
+@media (max-width: 640px) {
+    body.view-large .hud { transform: scale(1.02); }
+}
+
+#trackCanvas {
+    border-radius: 16px;
+    width: 100%;
+    height: auto; /* sera géré en JS pour 16:9 exact */
+    background: linear-gradient(180deg, #222739 0%, #0f111a 100%);
+    border: 1px solid rgba(60, 70, 110, 0.45);
+}
+
+.status-banner {
+    font-size: 18px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: rgba(220, 230, 255, 0.8);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 10px 16px;
+    text-align: center;
+}
+
+.primary-button {
+    border: none;
+    outline: none;
+    background: linear-gradient(120deg, #ff6f61 0%, #f9417a 55%, #6c4bff 120%);
+    color: #fefeff;
+    font-size: 18px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-radius: 48px;
+    padding: 14px 42px;
+    cursor: pointer;
+    box-shadow: 0 12px 30px rgba(246, 59, 121, 0.35);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.primary-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 36px rgba(246, 59, 121, 0.45);
+}
+
+.primary-button:active {
+    transform: translateY(1px);
+}
+
+.primary-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    box-shadow: none;
+}
+
+.secondary-button {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(14, 16, 25, 0.8);
+    color: #e0e4ff;
+    font-size: 16px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 46px;
+    padding: 12px 28px;
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.secondary-button:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.secondary-button:active {
+    transform: translateY(1px);
+}
+
+.pedal-button {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: none;
+    outline: none;
+    background: radial-gradient(circle at 30% 30%, #ffe082 0%, #ff6f61 55%, #f9417a 100%);
+    color: #1a1629;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 12px 24px rgba(249, 65, 122, 0.32);
+    transition: transform 0.16s ease, box-shadow 0.16s ease;
+    touch-action: none;
+}
+
+.pedal-button.is-active {
+    transform: scale(0.96);
+    box-shadow: 0 8px 18px rgba(249, 65, 122, 0.28);
+}
+
+.pedal-button:active {
+    transform: scale(0.92);
+}
+
+/* Aspect visuel quand le bouton sert de shifter */
+.pedal-button.shift-mode {
+    background: radial-gradient(circle at 30% 30%, #b9ffea 0%, #7cffb0 55%, #20c997 100%);
+    font-size: 24px;
+}
+
+.nitro-button {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: none;
+    outline: none;
+    background: radial-gradient(circle at 30% 30%, #9cd4ff 0%, #5ac8ff 45%, #2a6cff 100%);
+    color: #081229;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 12px 24px rgba(52, 133, 255, 0.35);
+    transition: transform 0.16s ease, box-shadow 0.16s ease;
+    touch-action: none;
+}
+
+.nitro-button:active,
+.nitro-button.is-active {
+    transform: scale(0.94);
+    box-shadow: 0 18px 30px rgba(52, 133, 255, 0.3);
+}
+
+.nitro-button.is-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.gauge-panel {
+    background: rgba(12, 14, 22, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
+}
+
+#rpmCanvas {
+    width: 200px;
+    height: 200px;
+}
+
+.gear-display {
+    text-align: center;
+}
+
+.gear-label {
+    text-transform: uppercase;
+    letter-spacing: 0.24em;
+    font-size: 13px;
+    color: rgba(224, 228, 244, 0.6);
+}
+
+.gear-value {
+    display: block;
+    font-size: 44px;
+    letter-spacing: 0.16em;
+    font-weight: 700;
+    margin-top: 6px;
+}
+
+.garage-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(6, 7, 11, 0.78);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 200;
+}
+
+.garage-overlay[hidden] {
+    display: none !important;
+}
+
+.garage-panel {
+    width: min(680px, 100%);
+    max-height: calc(100vh - 48px);
+    background: linear-gradient(145deg, rgba(20, 23, 36, 0.96), rgba(9, 10, 18, 0.98));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 28px 60px rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+}
+
+.garage-header,
+.garage-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.garage-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: none;
+}
+
+.garage-tabs {
+    display: flex;
+    gap: 0;
+    background: rgba(15, 17, 28, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.garage-tab {
+    flex: 1;
+    padding: 14px 20px;
+    background: transparent;
+    color: rgba(220, 230, 255, 0.6);
+    border: none;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.garage-tab:hover {
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(220, 230, 255, 0.85);
+}
+
+.garage-tab.active {
+    color: #7cffb0;
+    border-bottom-color: #7cffb0;
+    background: rgba(124, 255, 176, 0.05);
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+.upgrade-card {
+    background: linear-gradient(145deg, rgba(35, 38, 54, 0.8), rgba(18, 20, 30, 0.8));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.upgrade-card h3 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #7ecbff;
+    margin-bottom: 10px;
+}
+
+.upgrade-description {
+    font-size: 15px;
+    line-height: 1.5;
+    color: rgba(214, 219, 240, 0.8);
+    margin-bottom: 14px;
+}
+
+.upgrade-description span {
+    font-weight: 600;
+    color: #d6ddff;
+}
+
+.upgrade-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.reward-icon {
+    font-size: 18px;
+}
+
+.garage-content {
+    padding: 12px 24px 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.opponents-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+.opponent-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+}
+.opponent-meta { display: flex; flex-direction: column; gap: 4px; }
+.opponent-name { font-weight: 700; color: #d6ddff; }
+.opponent-stats { font-size: 13px; color: rgba(214,219,240,0.75); }
+.opponent-select { white-space: nowrap; }
+
+.garage-section h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.section-hint {
+    font-size: 14px;
+    color: rgba(214, 219, 240, 0.65);
+    margin-bottom: 12px;
+}
+
+.slider-list {
+    display: grid;
+    gap: 18px;
+}
+
+.slider-group {
+    display: grid;
+    gap: 8px;
+}
+
+.slider-group label {
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(224, 228, 244, 0.8);
+}
+
+.slider-value {
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    color: rgba(214, 219, 240, 0.7);
+}
+
+input[type='range'] {
+    width: 100%;
+    accent-color: #f9417a;
+}
+
+.icon-button {
+    border: none;
+    background: rgba(255, 255, 255, 0.08);
+    color: #f8f9ff;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.icon-button:hover {
+    transform: scale(1.08);
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.icon-button:active {
+    transform: scale(0.96);
+}
+
+.footer {
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(214, 219, 240, 0.5);
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 12px 8px 60px;
+    }
+
+    .game-shell {
+        padding: 12px 12px 210px;
+    }
+
+    .primary-button {
+        padding: 12px 28px;
+        font-size: 16px;
+    }
+
+    .gear-value {
+        font-size: 36px;
+    }
+
+    .garage-overlay {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    .gauge-panel {
+        position: static;
+        width: 100%;
+        max-width: 420px;
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 520px) {
+    .pedal-button {
+        width: 160px;
+        height: 160px;
+        right: 20px;
+        bottom: 24px;
+        font-size: 15px;
+    }
+
+    .nitro-button {
+        width: 160px;
+        height: 160px;
+        left: 20px;
+        bottom: 24px;
+        font-size: 15px;
+    }
+
+    .garage-panel {
+        width: 100%;
+        max-height: 100vh;
+    }
+
+    .garage-header,
+    .garage-footer {
+        padding: 18px 20px;
+    }
+
+    .garage-content {
+        padding: 10px 20px 20px;
+    }
+}
+
+/* Overlay de la zone de jeu */
+.playfield { position: relative; width: 100%; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+.overlay .status-banner { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); pointer-events: auto; }
+/* plus d'actions dans l'overlay: actions déplacées dans la page d'accueil */
