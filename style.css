@@ -102,26 +102,17 @@ body {
     display: flex;
     gap: 16px;
     flex-wrap: wrap;
+    justify-content: center;
+}
 
 /* Vision améliorée */
 body.view-large .auth-bar,
-body.view-large .footer {
-    display: none !important;
-}
-body.view-large .hud {
-    transform: scale(1.06);
-    transform-origin: top left;
-}
-body.view-hide-gauge .gauge-panel {
-    display: none !important;
-}
+body.view-large .footer { display: none !important; }
+body.view-large .hud { transform: scale(1.06); transform-origin: top left; }
+body.view-hide-gauge .gauge-panel { display: none !important; }
 
 @media (max-width: 640px) {
-    body.view-large .hud {
-        transform: scale(1.02);
-    }
-}
-    justify-content: center;
+    body.view-large .hud { transform: scale(1.02); }
 }
 
 #trackCanvas {
@@ -207,6 +198,14 @@ body.view-hide-gauge .gauge-panel {
     outline: none;
     background: radial-gradient(circle at 30% 30%, #ffe082 0%, #ff6f61 55%, #f9417a 100%);
     color: #1a1629;
+.hud,
+.game-actions {
+    background: rgba(9, 10, 17, 0.35);
+    backdrop-filter: saturate(120%) blur(6px);
+    -webkit-backdrop-filter: saturate(120%) blur(6px);
+    border-radius: 14px;
+    box-shadow: 0 6px 26px rgba(0,0,0,0.35);
+    padding: 10px 12px;
     font-size: 18px;
     font-weight: 700;
     letter-spacing: 0.08em;

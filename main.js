@@ -156,6 +156,7 @@ const nitroChargesValue = document.getElementById('nitroChargesValue');
 const gaugePanel = document.querySelector('.gauge-panel');
 const viewLargeButton = document.getElementById('viewLargeButton');
 const toggleGaugeButton = document.getElementById('toggleGaugeButton');
+const fullscreenButton = document.getElementById('fullscreenButton');
 if (gaugePanel) {
     gaugePanel.style.zIndex = '260';
     gaugePanel.style.pointerEvents = 'none';
@@ -598,6 +599,55 @@ if (toggleGaugeButton) {
         applyViewState();
     });
 }
+
+// Plein écran
+function isFullscreenActive() {
+    const d = document;
+    return !!(d.fullscreenElement || d.webkitFullscreenElement || d.msFullscreenElement);
+}
+
+function requestAnyFullscreen(el) {
+    if (!el) el = document.documentElement;
+    const anyEl = el;
+    if (el.requestFullscreen) return el.requestFullscreen();
+    if (anyEl.webkitRequestFullscreen) return anyEl.webkitRequestFullscreen();
+    if (anyEl.msRequestFullscreen) return anyEl.msRequestFullscreen();
+    return Promise.reject(new Error('Fullscreen API non supportée'));
+}
+
+function exitAnyFullscreen() {
+    const d = document;
+    const anyD = d;
+    if (d.exitFullscreen) return d.exitFullscreen();
+    if (anyD.webkitExitFullscreen) return anyD.webkitExitFullscreen();
+    if (anyD.msExitFullscreen) return anyD.msExitFullscreen();
+    return Promise.resolve();
+}
+
+function updateFullscreenUI() {
+    if (fullscreenButton) fullscreenButton.textContent = isFullscreenActive() ? 'Quitter plein écran' : 'Plein écran';
+    try { resizeCanvases(); } catch {}
+}
+
+if (fullscreenButton) {
+    fullscreenButton.addEventListener('click', async () => {
+        try {
+            if (!isFullscreenActive()) {
+                const target = document.querySelector('.game-shell') || document.documentElement;
+                await requestAnyFullscreen(target);
+            } else {
+                await exitAnyFullscreen();
+            }
+        } catch (_) {
+            /* ignore */
+        } finally {
+            updateFullscreenUI();
+        }
+    });
+}
+['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach((evt) => {
+    document.addEventListener(evt, updateFullscreenUI);
+});
 
 if (closeGarageButton) {
     closeGarageButton.addEventListener('click', () => closeGarage());
@@ -1769,6 +1819,7 @@ setBanner('Lance la course, maintiens la pédale (flèche haut ou bouton), utili
 // Appliquer taille 16:9 et recalculer à chaque rotation/redimensionnement
 resizeCanvases();
 window.addEventListener('resize', () => { resizeCanvases(); });
+try { updateFullscreenUI(); } catch {}
 requestAnimationFrame(gameLoop);
 
 // Synchroniser l’état initial (banque/niveau) depuis le serveur au chargement
