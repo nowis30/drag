@@ -289,6 +289,8 @@ const hudStage = document.getElementById('hudStage');
 const hudCash = document.getElementById('hudCash');
 const hudTime = document.getElementById('hudTime');
 const hudShift = document.getElementById('hudShift');
+const hudTopSpeed = document.getElementById('hudTopSpeed');
+const hudTopRpm = document.getElementById('hudTopRpm');
 const statusBanner = document.getElementById('statusBanner');
 // Accueil
 const homeScreen = document.getElementById('homeScreen');
@@ -847,6 +849,8 @@ const player = {
     position: 0,
     speed: 0,
     rpm: RPM_IDLE,
+    peakSpeedKmH: 0,
+    peakRpm: RPM_IDLE,
     gear: 1,
     shiftMomentum: 0,
     limiterPenalty: 0,
@@ -1270,6 +1274,8 @@ function resetPlayer() {
     player.position = 0;
     player.speed = 0;
     player.rpm = RPM_IDLE;
+    player.peakSpeedKmH = 0;
+    player.peakRpm = RPM_IDLE;
     player.gear = 1;
     player.shiftMomentum = 0;
     player.limiterPenalty = 0;
@@ -1877,6 +1883,10 @@ function updatePlayer(dt) {
     const topSpeedBonus = player.nitroActive ? 1.08 : 1;
     player.speed = Math.min(player.speed, profile.topSpeed * topSpeedBonus);
 
+    // Mise à jour des pics (top speed / top RPM)
+    if (player.rpm > player.peakRpm) player.peakRpm = player.rpm;
+    if (player.speed > player.peakSpeedKmH) player.peakSpeedKmH = player.speed;
+
     const metersPerSecond = player.speed / 3.6;
     player.position += metersPerSecond * dt;
 
@@ -2064,6 +2074,15 @@ function updateHud() {
         hudTime.textContent = `${game.timer.toFixed(2)} s`;
     } else {
         hudTime.textContent = '0.00 s';
+    }
+
+    if (hudTopSpeed) {
+        const v = Math.max(0, Math.round(player.peakSpeedKmH));
+        hudTopSpeed.textContent = `${v} km/h`;
+    }
+    if (hudTopRpm) {
+        const r = Math.max(0, Math.round(player.peakRpm));
+        hudTopRpm.textContent = `${r}`;
     }
 }
 
