@@ -68,24 +68,38 @@
                     <div class="status-banner" id="statusBanner">
                         Maintiens la pédale (flèche haut ou bouton), utilise Nitro (N/X ou bouton) et change de vitesse dans la zone verte.
                     </div>
-                    <!-- Sélection du mode de course -->
-                    <div class="mode-select" id="modeSelect">
-                        <h3>Choisis ton mode</h3>
-                        <div class="mode-buttons">
-                            <button id="modeWorld" class="secondary-button" type="button" data-mode="world" title="Contre le meilleur fantôme mondial">Record mondial • +1 000 000 $</button>
-                            <button id="modePvP" class="secondary-button" type="button" data-mode="pvp" title="Contre le meilleur fantôme d'un autre joueur">PvP • +500 000 $</button>
-                            <button id="modeGhost" class="secondary-button" type="button" data-mode="ghost" title="Contre ton fantôme IA (10e meilleur)">Fantôme IA • +50 000 $</button>
-                        </div>
-                    </div>
-                    <div class="game-actions" id="overlayActions">
-                        <button id="startButton" class="primary-button" type="button">Lancer la course</button>
-                        <button id="garageButton" class="secondary-button" type="button">Garage &amp; Réglages</button>
-                        <button id="viewLargeButton" class="secondary-button" type="button" title="Augmente la zone de jeu (masque certaines barres)">Vue XL</button>
-                        <button id="fullscreenButton" class="secondary-button" type="button" title="Mode plein écran (sortie: Échap)">Plein écran</button>
-                        <button id="toggleGaugeButton" class="secondary-button" type="button" title="Affiche/masque le cadran RPM">Masquer cadran</button>
-                    </div>
                 </div>
             </div>
+
+            <!-- Page d'accueil: connexion (barre en haut), modes, garage/réglages et actions -->
+            <section class="home-screen" id="homeScreen">
+                <h2 class="home-title">Drag Shift Duel</h2>
+                <p class="home-sub">Choisis ton mode, vérifie tes réglages et lance la course.</p>
+
+                <!-- Sélection du mode de course -->
+                <div class="mode-select" id="modeSelect">
+                    <h3>Choisis ton mode</h3>
+                    <div class="mode-buttons">
+                        <button id="modeWorld" class="secondary-button" type="button" data-mode="world" title="Contre le meilleur fantôme mondial">Record mondial • +1 000 000 $</button>
+                        <button id="modePvP" class="secondary-button" type="button" data-mode="pvp" title="Contre le meilleur fantôme d'un autre joueur">PvP • +500 000 $</button>
+                        <button id="modeGhost" class="secondary-button" type="button" data-mode="ghost" title="Contre ton fantôme IA (10e meilleur)">Fantôme IA • +50 000 $</button>
+                    </div>
+                </div>
+
+                <!-- Raccourcis et options de vue -->
+                <div class="home-actions">
+                    <button id="garageButton" class="secondary-button" type="button">Garage &amp; Réglages</button>
+                    <div class="spacer"></div>
+                    <button id="viewLargeButton" class="secondary-button" type="button" title="Augmente la zone de jeu (masque certaines barres)">Vue XL</button>
+                    <button id="fullscreenButton" class="secondary-button" type="button" title="Mode plein écran (sortie: Échap)">Plein écran</button>
+                    <button id="toggleGaugeButton" class="secondary-button" type="button" title="Affiche/masque le cadran RPM">Masquer cadran</button>
+                </div>
+
+                <!-- Lancer la course en bas -->
+                <div class="home-start">
+                    <button id="startButton" class="primary-button" type="button">Lancer la course</button>
+                </div>
+            </section>
             
             <!-- Barre de contrôles sous la piste: à gauche Gaz + Nitro, au centre le cadran, à droite le Shifter -->
             <div class="race-controls" id="raceControls">

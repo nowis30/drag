@@ -181,6 +181,26 @@ body {
 .mode-select .mode-buttons { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 .mode-select .secondary-button.active { border-color: #7cffb0; color: #7cffb0; }
 
+/* Accueil */
+.home-screen {
+    width: 100%;
+    max-width: 1000px;
+    margin-top: 12px;
+    background: rgba(10, 12, 18, 0.85);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 18px 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.home-title { font-size: 28px; font-weight: 800; letter-spacing: 0.06em; text-align: center; }
+.home-sub { text-align: center; opacity: 0.8; }
+.home-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.home-actions .spacer { flex: 1; }
+.home-start { display: flex; justify-content: center; padding-top: 4px; }
+.home-start .primary-button { padding: 16px 46px; }
+
 /* Vision améliorée */
 body.view-large .auth-bar,
 body.view-large .footer { display: none !important; }
@@ -625,4 +645,4 @@ input[type='range'] {
 .playfield { position: relative; width: 100%; }
 .overlay { position: absolute; inset: 0; pointer-events: none; }
 .overlay .status-banner { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); pointer-events: auto; }
-.overlay .game-actions { position: absolute; top: 120px; left: 50%; transform: translateX(-50%); pointer-events: auto; }
+/* plus d'actions dans l'overlay: actions déplacées dans la page d'accueil */

@@ -191,7 +191,8 @@ const hudCash = document.getElementById('hudCash');
 const hudTime = document.getElementById('hudTime');
 const hudShift = document.getElementById('hudShift');
 const statusBanner = document.getElementById('statusBanner');
-const overlayActions = document.getElementById('overlayActions');
+// Accueil
+const homeScreen = document.getElementById('homeScreen');
 // Auth UI elements
 const authEmail = document.getElementById('authEmail');
 const authPassword = document.getElementById('authPassword');
@@ -1405,8 +1406,8 @@ function setBanner(text, duration = 2, tint = '') {
 
 // Affiche/masque les actions (Start/Garage) dans l'overlay pendant la course
 function setOverlayActionsVisible(visible) {
-    if (!overlayActions) return;
-    overlayActions.style.display = visible ? 'flex' : 'none';
+    // Réutilise la sémantique pour piloter l'accueil (home-screen)
+    if (homeScreen) homeScreen.style.display = visible ? 'flex' : 'none';
 }
 
 // Affiche/masque la barre d'authentification pendant la course
@@ -1829,7 +1830,7 @@ async function finishRace(playerWins) {
     game.state = 'finished';
     startButton.textContent = 'Rejouer';
     startButton.disabled = false;
-    // Ré-afficher les actions une fois la course terminée
+    // Ré-afficher l'accueil une fois la course terminée
     setOverlayActionsVisible(true);
     // Ré-afficher la barre d'authentification après la course
     setAuthBarVisible(true);
