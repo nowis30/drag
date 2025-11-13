@@ -2376,6 +2376,10 @@ updateGearDisplay();
 if (garageOverlay) {
     garageOverlay.style.display = 'none';
 }
+
+// Initialiser le mode par défaut à "ghost" pour permettre de jouer immédiatement
+setRaceMode('ghost');
+
 setBanner('Lance la course, maintiens la pédale (flèche haut ou bouton), utilise le nitro (N/X ou bouton) et shift dans la zone verte.', 6, '#d6ddff');
 // Appliquer taille 16:9 et recalculer à chaque rotation/redimensionnement
 resizeCanvases();
