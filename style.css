@@ -147,6 +147,31 @@ body {
     justify-content: center;
 }
 
+/* Sélecteur de mode de course */
+.mode-select {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    position: absolute;
+    top: 64px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+.mode-select h3 {
+    margin: 0;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: rgba(220,230,255,0.8);
+}
+.mode-select .mode-buttons { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.mode-select .secondary-button.active { border-color: #7cffb0; color: #7cffb0; }
+
 /* Vision améliorée */
 body.view-large .auth-bar,
 body.view-large .footer { display: none !important; }
@@ -541,26 +566,6 @@ input[type='range'] {
         font-size: 36px;
     }
 
-    .pedal-button {
-        position: fixed;
-        bottom: 32px;
-        right: 28px;
-        width: 150px;
-        height: 150px;
-        font-size: 16px;
-        z-index: 30;
-    }
-
-    .nitro-button {
-        position: fixed;
-        bottom: 32px;
-        left: 28px;
-        width: 150px;
-        height: 150px;
-        font-size: 18px;
-        z-index: 30;
-    }
-
     .garage-overlay {
         padding: 16px;
     }
@@ -607,31 +612,8 @@ input[type='range'] {
     }
 }
 
-/* --- Overlay layout pour mettre RPM + boutons DANS l'écran de jeu --- */
+/* Overlay de la zone de jeu */
 .playfield { position: relative; width: 100%; }
-.overlay { position: absolute; inset: 0; }
-
-.overlay .status-banner {
-    position: absolute;
-    top: 8px; left: 50%; transform: translateX(-50%);
-}
-
-.overlay .game-actions {
-    position: absolute;
-    top: 64px; left: 50%; transform: translateX(-50%);
-}
-
-/* La jauge RPM en haut-droite dans l'overlay */
-.gauge-panel {
-    position: absolute;
-    left: 50%; top: 50%; transform: translate(-50%, -50%);
-    pointer-events: none;
-}
-
-/* Boutons de contrôle en bas, à l'intérieur de l'overlay */
-.pedal-button { bottom: 16px; right: 16px; pointer-events: auto; }
-.nitro-button { bottom: 16px; left: 16px; pointer-events: auto; }
-
-@media (max-width: 768px) {
-    .gauge-panel { left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.9); }
-}
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+.overlay .status-banner { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); pointer-events: auto; }
+.overlay .game-actions { position: absolute; top: 120px; left: 50%; transform: translateX(-50%); pointer-events: auto; }

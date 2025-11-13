@@ -1,3 +1,59 @@
+// === Récompenses par mode ===
+const RACE_MODES = {
+    world: { label: 'Record mondial', payout: 1000000 },
+    pvp: { label: 'PvP', payout: 500000 },
+    ghost: { label: 'Fantôme IA', payout: 50000 }
+};
+let raceMode = null; // Doit être choisi avant le départ
+function getVictoryPayout() {
+    const mode = raceMode && RACE_MODES[raceMode] ? raceMode : 'ghost';
+    return RACE_MODES[mode].payout;
+}
+function setRaceMode(mode) {
+    if (!RACE_MODES[mode]) return;
+    raceMode = mode;
+    // UI
+    try {
+        const bWorld = document.getElementById('modeWorld');
+        const bPvP = document.getElementById('modePvP');
+        const bGhost = document.getElementById('modeGhost');
+        [bWorld, bPvP, bGhost].forEach((b) => b && b.classList.remove('active'));
+        const map = { world: bWorld, pvp: bPvP, ghost: bGhost };
+        const el = map[mode]; if (el) el.classList.add('active');
+    } catch {}
+}
+function openModeSelect() {
+    const el = document.getElementById('modeSelect'); if (!el) return;
+    el.style.display = 'flex';
+}
+function closeModeSelect() {
+    const el = document.getElementById('modeSelect'); if (!el) return;
+    el.style.display = 'none';
+}
+const startButton = document.getElementById('startButton');
+const modeSelectEl = document.getElementById('modeSelect');
+const modeWorldBtn = document.getElementById('modeWorld');
+const modePvPBtn = document.getElementById('modePvP');
+const modeGhostBtn = document.getElementById('modeGhost');
+startButton.addEventListener('click', () => {
+    if (game.state === 'countdown') {
+        return;
+    }
+    // Exiger un mode sélectionné
+    if (!raceMode) {
+        openModeSelect();
+        setBanner('Choisis un mode de course.', 2.2, '#d6ddff');
+        return;
+    }
+    closeGarage();
+    closeModeSelect();
+    startRace();
+});
+
+// Sélecteurs de mode
+if (modeWorldBtn) modeWorldBtn.addEventListener('click', () => { setRaceMode('world'); });
+if (modePvPBtn) modePvPBtn.addEventListener('click', () => { setRaceMode('pvp'); });
+if (modeGhostBtn) modeGhostBtn.addEventListener('click', () => { setRaceMode('ghost'); });
 // === Réseau / API (intégration Millionnaire) ===
 // Priorité:
 // 1) window.DRAG_API_BASE (forçage manuel)
@@ -146,7 +202,6 @@ const authForgotBtn = document.getElementById('authForgot');
 const authStatus = document.getElementById('authStatus');
 const authLeft = document.querySelector('.auth-left');
 const authBar = document.querySelector('.auth-bar');
-const startButton = document.getElementById('startButton');
 const gearValue = document.getElementById('gearValue');
 const gasButton = document.getElementById('gasButton');
 const nitroButton = document.getElementById('nitroButton');
@@ -277,7 +332,6 @@ const baseGearProfile = [
     { topSpeed: 540, accelFactor: 0.52 }
 ];
 
-const VICTORY_PAYOUT = 50000;
 const UPGRADE_COST = 1000000;
 
 // Système de progression: Moteur (1-20) et Transmission (1-5)
@@ -722,14 +776,7 @@ let lastFrame = performance.now();
 let activeThrottlePointer = null;
 let activeNitroPointer = null;
 
-startButton.addEventListener('click', () => {
-    if (game.state === 'countdown') {
-        return;
-    }
-
-    closeGarage();
-    startRace();
-});
+// startButton: gestion déplacée en haut avec la sélection du mode
 
 window.addEventListener('keydown', (event) => {
     if (THROTTLE_KEYS.has(event.code)) {
@@ -1061,6 +1108,7 @@ if (garageOverlay) {
 
 function startRace() {
     closeGarage();
+    closeModeSelect();
 
     game.state = 'countdown';
     game.countdown = 3;
@@ -1125,23 +1173,45 @@ function setupOpponent() {
     opponent.shiftStumbleTimer = 0;
     opponent.stumbleInterval = null;
 
-    if (playerRaceHistory.length < 2) {
-        opponent.reactionDelay = 0.9;
-        opponent.accel = 22 + game.stage * 2.8;
-        opponent.maxSpeed = 150 + game.stage * 6;
-        opponent.handicap = 0.4;
-        opponent.stumbleInterval = 1.1 + Math.random() * 0.4;
+    // Mode fantôme local (IA sur la 10e meilleure perf perso)
+    if (raceMode === 'ghost' || !raceMode) {
+        if (playerRaceHistory.length < 2) {
+            opponent.reactionDelay = 0.9;
+            opponent.accel = 22 + game.stage * 2.8;
+            opponent.maxSpeed = 150 + game.stage * 6;
+            opponent.handicap = 0.4;
+            opponent.stumbleInterval = 1.1 + Math.random() * 0.4;
+            return;
+        }
+
+        const referenceTime = playerRaceHistory[1];
+        const ghostTime = Math.max(referenceTime, 7);
+        opponent.targetTime = ghostTime;
+        opponent.reactionDelay = clamp(ghostTime * 0.08, 0.18, 0.45);
+        const effectiveTime = Math.max(ghostTime - opponent.reactionDelay, 1.4);
+        const targetKmH = clamp((TRACK_LENGTH_METERS / effectiveTime) * 3.6, 140, 360);
+        opponent.maxSpeed = targetKmH * 1.04;
+        opponent.accel = clamp(targetKmH * 0.9, 48, 155);
         return;
     }
 
-    const referenceTime = playerRaceHistory[1];
-    const ghostTime = Math.max(referenceTime, 7);
-    opponent.targetTime = ghostTime;
-    opponent.reactionDelay = clamp(ghostTime * 0.08, 0.18, 0.45);
-    const effectiveTime = Math.max(ghostTime - opponent.reactionDelay, 1.4);
-    const targetKmH = clamp((TRACK_LENGTH_METERS / effectiveTime) * 3.6, 140, 360);
-    opponent.maxSpeed = targetKmH * 1.04;
-    opponent.accel = clamp(targetKmH * 0.9, 48, 155);
+    // Modes world/pvp — TODO backend: récupérer meilleurs fantômes
+    opponent.targetTime = null; // pilotage par accel/maxSpeed
+    if (raceMode === 'world') {
+        // plus dur: adversaire très rapide
+        opponent.reactionDelay = 0.28;
+        opponent.accel = 95;
+        opponent.maxSpeed = 340;
+        opponent.handicap = 0.95;
+        opponent.stumbleInterval = 1.6;
+    } else {
+        // pvp moyen
+        opponent.reactionDelay = 0.38;
+        opponent.accel = 78;
+        opponent.maxSpeed = 300;
+        opponent.handicap = 0.85;
+        opponent.stumbleInterval = 1.3;
+    }
 }
 
 function updateLaunchControl(dt) {
@@ -1784,7 +1854,7 @@ async function finishRace(playerWins) {
 
     // Affichage immédiat côté client (serveur reste autorité pour cash/stage/récompense)
     if (finalWin) {
-        const tentativePayout = VICTORY_PAYOUT;
+        const tentativePayout = getVictoryPayout();
         const payoutText = tentativePayout.toLocaleString('fr-CA');
         game.reward = tentativePayout; // valeur provisoire, sera remplacée par la réponse serveur
         const bannerText = forcedWin ? `Victoire parfaite ! +${payoutText} $` : `Victoire ! +${payoutText} $`;
@@ -1807,7 +1877,7 @@ async function finishRace(playerWins) {
             elapsedMs,
             win: finalWin,
             perfectShifts: player.perfectShifts,
-            reward: finalWin ? VICTORY_PAYOUT : 0,
+            reward: finalWin ? getVictoryPayout() : 0,
             deviceInfo: {
                 ua: (typeof navigator !== 'undefined' ? navigator.userAgent : ''),
                 w: (typeof window !== 'undefined' ? window.innerWidth : 0),
@@ -1824,7 +1894,7 @@ async function finishRace(playerWins) {
         // Mise à jour depuis le serveur (autorité)
         const newCash = Number(resp?.player?.cash ?? game.cash);
         const newStage = Number(resp?.drag?.stage ?? game.stage);
-        const granted = Number(resp?.grantedReward ?? (finalWin ? VICTORY_PAYOUT : 0));
+    const granted = Number(resp?.grantedReward ?? (finalWin ? getVictoryPayout() : 0));
         game.cash = Number.isFinite(newCash) ? newCash : game.cash;
         game.stage = Number.isFinite(newStage) ? newStage : game.stage;
         game.reward = Number.isFinite(granted) ? granted : game.reward;
