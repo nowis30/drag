@@ -191,9 +191,62 @@ function getStoredSession() {
 }
 function setStoredSession(s) { try { localStorage.setItem('hm-session', JSON.stringify(s)); } catch {} }
 function clearStoredSession() { try { localStorage.removeItem('hm-session'); } catch {} }
+const TOKEN_SOURCE_KEY = 'hm-token-source';
 function getAuthToken() { try { return localStorage.getItem('hm-token') || null; } catch { return null; } }
-function setAuthToken(t) { try { if (t) localStorage.setItem('hm-token', t); } catch {} }
-function clearAuthToken() { try { localStorage.removeItem('hm-token'); } catch {} }
+function setAuthToken(t, source) {
+    try {
+        if (t) {
+            localStorage.setItem('hm-token', t);
+            if (source) localStorage.setItem(TOKEN_SOURCE_KEY, source);
+        }
+    } catch {}
+}
+function clearAuthToken() {
+    try {
+        localStorage.removeItem('hm-token');
+        localStorage.removeItem(TOKEN_SOURCE_KEY);
+    } catch {}
+}
+function getTokenSource() {
+    try { return localStorage.getItem(TOKEN_SOURCE_KEY) || null; } catch { return null; }
+}
+const GUEST_INFO_KEY = 'drag-guest-info';
+function getStoredGuestIdentity() {
+    try {
+        const raw = localStorage.getItem(GUEST_INFO_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+}
+function setStoredGuestIdentity(info) {
+    try { localStorage.setItem(GUEST_INFO_KEY, JSON.stringify(info || {})); } catch {}
+}
+async function ensureGuestToken(forceRenew = false) {
+    if (!forceRenew) {
+        const existing = getAuthToken();
+        if (existing) return existing;
+    }
+    const existingInfo = getStoredGuestIdentity();
+    const body = existingInfo?.guestId ? { guestId: existingInfo.guestId } : {};
+    try {
+        const res = await fetch(`${API_BASE}/api/auth/guest-token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            credentials: 'omit'
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json().catch(() => null);
+        if (data?.token && data?.guestId) {
+            setStoredGuestIdentity({ guestId: data.guestId, mintedAt: Date.now() });
+            setAuthToken(data.token, 'guest');
+            return data.token;
+        }
+        throw new Error('Réponse invalide');
+    } catch (err) {
+        try { console.warn('[drag] guest token fetch failed', err); } catch {}
+        throw err;
+    }
+}
 async function ensureCsrf() {
     try {
         if (CSRF_TOKEN) return CSRF_TOKEN;
@@ -202,7 +255,7 @@ async function ensureCsrf() {
         CSRF_TOKEN = data?.csrf || null; return CSRF_TOKEN;
     } catch { return null; }
 }
-async function apiFetch(path, init = {}) {
+async function apiFetch(path, init = {}, retry = true) {
     const method = (init.method || 'GET').toUpperCase();
     const headers = Object.assign({}, init.headers || {});
     if ([ 'POST','PUT','PATCH','DELETE' ].includes(method)) {
@@ -240,11 +293,17 @@ async function apiFetch(path, init = {}) {
     }
 
     const res = await fetch(url, { credentials: 'include', ...init, headers });
+    if (res.status === 401 && retry && getTokenSource() === 'guest') {
+        clearAuthToken();
+        try { await ensureGuestToken(true); } catch {}
+        return apiFetch(path, init, false);
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     if (res.status === 204) return undefined;
     return await res.json();
 }
 async function ensureSession() {
+    await ensureGuestToken().catch(() => null);
     let sess = getStoredSession();
     if (sess?.gameId && sess?.playerId) return sess;
     // Auto-join sur la partie globale
@@ -280,6 +339,12 @@ async function loadDragSessionAndSyncHUD() {
 async function refreshAuthUi() {
     try {
         const me = await apiFetch('/api/auth/me');
+        if (me && me.guest) {
+            if (authStatus) authStatus.textContent = `Invité ${String(me.guestId || '').slice(-4)}`;
+            if (authLogoutBtn) authLogoutBtn.hidden = true;
+            if (authLeft) authLeft.style.display = 'flex';
+            return;
+        }
         if (authStatus) authStatus.textContent = me?.email || 'Connecté';
         if (authLogoutBtn) authLogoutBtn.hidden = false;
         if (authLeft) authLeft.style.display = 'none';
@@ -1170,7 +1235,7 @@ if (authLoginBtn) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             });
-            if (loginRes && loginRes.token) setAuthToken(loginRes.token);
+            if (loginRes && loginRes.token) setAuthToken(loginRes.token, 'user');
             clearStoredSession();
             await refreshAuthUi();
             await loadDragSessionAndSyncHUD();
@@ -1195,7 +1260,7 @@ if (authRegisterBtn) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             });
-            if (regRes && regRes.token) setAuthToken(regRes.token);
+            if (regRes && regRes.token) setAuthToken(regRes.token, 'user');
             clearStoredSession();
             await refreshAuthUi();
             await loadDragSessionAndSyncHUD();
@@ -1213,6 +1278,7 @@ if (authLogoutBtn) {
         } catch {}
         clearStoredSession();
         clearAuthToken();
+        await ensureGuestToken(true).catch(() => {});
         await refreshAuthUi();
         await loadDragSessionAndSyncHUD().catch(() => {});
         setBanner('Déconnecté.', 2, '#d6ddff');
@@ -2398,4 +2464,6 @@ try { updateFullscreenUI(); } catch {}
 requestAnimationFrame(gameLoop);
 
 // Synchroniser l’état initial (banque/niveau) depuis le serveur au chargement
-refreshAuthUi().then(() => loadDragSessionAndSyncHUD().catch(() => {}));
+ensureGuestToken().catch(() => null).then(() => {
+    refreshAuthUi().then(() => loadDragSessionAndSyncHUD().catch(() => {}));
+});
