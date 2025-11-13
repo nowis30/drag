@@ -350,6 +350,85 @@ body.view-hide-gauge .gauge-panel { display: none !important; }
     border-bottom: none;
 }
 
+.garage-tabs {
+    display: flex;
+    gap: 0;
+    background: rgba(15, 17, 28, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.garage-tab {
+    flex: 1;
+    padding: 14px 20px;
+    background: transparent;
+    color: rgba(220, 230, 255, 0.6);
+    border: none;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.garage-tab:hover {
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(220, 230, 255, 0.85);
+}
+
+.garage-tab.active {
+    color: #7cffb0;
+    border-bottom-color: #7cffb0;
+    background: rgba(124, 255, 176, 0.05);
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+.upgrade-card {
+    background: linear-gradient(145deg, rgba(35, 38, 54, 0.8), rgba(18, 20, 30, 0.8));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.upgrade-card h3 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #7ecbff;
+    margin-bottom: 10px;
+}
+
+.upgrade-description {
+    font-size: 15px;
+    line-height: 1.5;
+    color: rgba(214, 219, 240, 0.8);
+    margin-bottom: 14px;
+}
+
+.upgrade-description span {
+    font-weight: 600;
+    color: #d6ddff;
+}
+
+.upgrade-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.reward-icon {
+    font-size: 18px;
+}
+
 .garage-content {
     padding: 12px 24px 24px;
     overflow-y: auto;

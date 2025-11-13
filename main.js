@@ -96,7 +96,18 @@ async function loadDragSessionAndSyncHUD() {
     try {
         game.cash = Number(data?.player?.cash ?? 0);
         game.stage = Number(data?.drag?.stage ?? 1);
+        
+        // Charger les niveaux d'upgrade depuis le serveur
+        if (data?.drag?.engineLevel !== undefined) {
+            upgrades.engineLevel = clamp(Number(data.drag.engineLevel), 1, 20);
+        }
+        if (data?.drag?.transmissionLevel !== undefined) {
+            upgrades.transmissionLevel = clamp(Number(data.drag.transmissionLevel), 1, 5);
+        }
+        
+        recalculateGearProfile();
         updateHud();
+        updateUpgradesUI();
     } catch {}
     return { sess, data };
 }
@@ -157,6 +168,17 @@ const gaugePanel = document.querySelector('.gauge-panel');
 const viewLargeButton = document.getElementById('viewLargeButton');
 const toggleGaugeButton = document.getElementById('toggleGaugeButton');
 const fullscreenButton = document.getElementById('fullscreenButton');
+// Garage tabs et upgrades UI
+const tabUpgrades = document.getElementById('tabUpgrades');
+const tabSettings = document.getElementById('tabSettings');
+const upgradesPanel = document.getElementById('upgradesPanel');
+const settingsPanel = document.getElementById('settingsPanel');
+const engineLevelDisplay = document.getElementById('engineLevelDisplay');
+const enginePowerDisplay = document.getElementById('enginePowerDisplay');
+const transmissionLevelDisplay = document.getElementById('transmissionLevelDisplay');
+const transmissionDesc = document.getElementById('transmissionDesc');
+const buyEngineButton = document.getElementById('buyEngineButton');
+const buyTransmissionButton = document.getElementById('buyTransmissionButton');
 if (gaugePanel) {
     gaugePanel.style.zIndex = '260';
     gaugePanel.style.pointerEvents = 'none';
@@ -239,8 +261,9 @@ const gearSliders = [];
 const TRACK_LENGTH_METERS = 380;
 const RPM_IDLE = 1200;
 const RPM_MAX = 8000;
-const RPM_SHIFT_MIN = 5200;
-const RPM_SHIFT_MAX = 6900;
+const RPM_SHIFT_MIN = 5000;  // Zone jaune commence
+const RPM_SHIFT_MAX = 5800;  // Zone verte commence
+const RPM_GREEN_END = 7300;  // Zone verte finit, rouge commence
 const RPM_REDLINE = 7500;
 const MAX_GEAR = 8;
 
@@ -257,6 +280,79 @@ const baseGearProfile = [
 ];
 
 const VICTORY_PAYOUT = 50000;
+const UPGRADE_COST = 1000000;
+
+// Système de progression: Moteur (1-20) et Transmission (1-5)
+const upgrades = {
+    engineLevel: 1,        // 1 = Corolla (~130hp), 20 = F1 (~1000hp)
+    transmissionLevel: 1   // 1 = 5 vitesses Corolla, 5 = 8 vitesses F1
+};
+
+// Courbe de puissance moteur: progression exponentielle de 130 à 1000 HP
+function getEnginePowerMultiplier(level) {
+    // Niveau 1: 130 HP (base 1.0), Niveau 20: 1000 HP (~7.7x)
+    const minHP = 130;
+    const maxHP = 1000;
+    const clampedLevel = clamp(level, 1, 20);
+    // Progression exponentielle douce
+    const progress = (clampedLevel - 1) / 19;
+    const hp = minHP * Math.pow(maxHP / minHP, progress);
+    return hp / minHP;
+}
+
+// Configuration transmission par niveau
+function getTransmissionConfig(level) {
+    const clampedLevel = clamp(level, 1, 5);
+    switch (clampedLevel) {
+        case 1:
+            // 5 vitesses Corolla, ratios fixes
+            return {
+                gears: 5,
+                speedMultiplier: 1.0,
+                adjustable: false,
+                adjustRange: { min: 1.0, max: 1.0 }
+            };
+        case 2:
+            // 6 vitesses, +15% vitesse max, ratios fixes
+            return {
+                gears: 6,
+                speedMultiplier: 1.15,
+                adjustable: false,
+                adjustRange: { min: 1.0, max: 1.0 }
+            };
+        case 3:
+            // 6 vitesses, +20% vitesse, ajustable limité (0.9-1.1x)
+            return {
+                gears: 6,
+                speedMultiplier: 1.20,
+                adjustable: true,
+                adjustRange: { min: 0.9, max: 1.1 }
+            };
+        case 4:
+            // 6 vitesses, +25% vitesse, ajustable débarré (0.75-1.3x)
+            return {
+                gears: 6,
+                speedMultiplier: 1.25,
+                adjustable: true,
+                adjustRange: { min: 0.75, max: 1.3 }
+            };
+        case 5:
+            // 8 vitesses F1, +40% vitesse, ajustable débarré
+            return {
+                gears: 8,
+                speedMultiplier: 1.40,
+                adjustable: true,
+                adjustRange: { min: 0.75, max: 1.3 }
+            };
+        default:
+            return {
+                gears: 5,
+                speedMultiplier: 1.0,
+                adjustable: false,
+                adjustRange: { min: 1.0, max: 1.0 }
+            };
+    }
+}
 
 let gearProfile = baseGearProfile.map((entry) => (entry ? { ...entry } : null));
 
@@ -394,16 +490,184 @@ function handleRaceCompletedForAds() {
     void showDragInterstitialIfReady();
 }
 
+// Pub rewarded pour les upgrades
+async function showDragRewardedAd() {
+    if (!isNativeAdContext()) {
+        // Fallback web: simple confirmation
+        return new Promise((resolve) => {
+            const confirmed = confirm('En production native, une publicité rewarded apparaîtrait ici.\n\nConfirmer pour simuler la pub visionnée?');
+            setTimeout(() => resolve(confirmed), 100);
+        });
+    }
+    
+    const plugin = getAdMobPluginForDrag();
+    if (!plugin || typeof plugin.showRewarded !== 'function') {
+        return false;
+    }
+    
+    try {
+        // Précharger si besoin
+        if (typeof plugin.loadRewarded === 'function') {
+            try {
+                await plugin.loadRewarded();
+            } catch {}
+        }
+        
+        // Vérifier disponibilité
+        let ready = false;
+        if (typeof plugin.isRewardedAdReady === 'function') {
+            try {
+                const status = await plugin.isRewardedAdReady();
+                ready = !!(status && status.ready);
+            } catch {}
+        }
+        
+        if (!ready) {
+            alert('Publicité non disponible pour le moment. Réessayez dans quelques secondes.');
+            return false;
+        }
+        
+        // Afficher la pub
+        await plugin.showRewarded();
+        
+        // Recharger pour la prochaine fois
+        if (typeof plugin.loadRewarded === 'function') {
+            try {
+                await plugin.loadRewarded();
+            } catch {}
+        }
+        
+        return true;
+    } catch (err) {
+        console.warn('[drag][rewarded] show failed', err);
+        return false;
+    }
+}
+
+async function buyUpgrade(type) {
+    if (type !== 'engine' && type !== 'transmission') {
+        setBanner('Type d\'amélioration invalide.', 2, '#ff6b6b');
+        return;
+    }
+    
+    const currentLevel = type === 'engine' ? upgrades.engineLevel : upgrades.transmissionLevel;
+    const maxLevel = type === 'engine' ? 20 : 5;
+    
+    if (currentLevel >= maxLevel) {
+        setBanner('Niveau maximum atteint !', 2, '#d6ddff');
+        return;
+    }
+    
+    if (game.cash < UPGRADE_COST) {
+        const needed = UPGRADE_COST - game.cash;
+        setBanner(`Pas assez d'argent ! Il manque ${needed.toLocaleString('fr-CA')} $.`, 3, '#ffe66d');
+        return;
+    }
+    
+    // Afficher la pub rewarded
+    setBanner('Chargement de la publicité...', 2, '#7ecbff');
+    const watched = await showDragRewardedAd();
+    
+    if (!watched) {
+        setBanner('Amélioration annulée (publicité non visionnée).', 3, '#ffad60');
+        return;
+    }
+    
+    // Déduire le coût
+    game.cash -= UPGRADE_COST;
+    
+    // Augmenter le niveau
+    if (type === 'engine') {
+        upgrades.engineLevel = Math.min(upgrades.engineLevel + 1, maxLevel);
+    } else {
+        upgrades.transmissionLevel = Math.min(upgrades.transmissionLevel + 1, maxLevel);
+    }
+    
+    // Recalculer le profil de vitesses
+    recalculateGearProfile();
+    
+    // Mettre à jour l'UI du garage
+    updateUpgradesUI();
+    updateHud();
+    
+    const newLevel = type === 'engine' ? upgrades.engineLevel : upgrades.transmissionLevel;
+    const label = type === 'engine' ? 'Moteur' : 'Transmission';
+    setBanner(`${label} amélioré ! Niveau ${newLevel}/${maxLevel}.`, 3, '#7cffb0');
+    
+    // TODO: Sauvegarder sur le serveur via API /drag/upgrade/:type
+    try {
+        const sess = await ensureSession();
+        await apiFetch(`/api/games/${sess.gameId}/drag/upgrade/${type}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ level: newLevel })
+        });
+    } catch (err) {
+        console.warn('[drag][upgrade] server save failed', err);
+    }
+}
+
+function getTransmissionDescription(level) {
+    switch (level) {
+        case 1: return '5 vitesses Corolla (fixe)';
+        case 2: return '6 vitesses, +15% vitesse (fixe)';
+        case 3: return '6 vitesses, +20% vitesse (ajustable limité)';
+        case 4: return '6 vitesses, +25% vitesse (débarré)';
+        case 5: return '8 vitesses F1, +40% vitesse (débarré)';
+        default: return '5 vitesses Corolla (fixe)';
+    }
+}
+
+function updateUpgradesUI() {
+    if (engineLevelDisplay) engineLevelDisplay.textContent = upgrades.engineLevel;
+    if (transmissionLevelDisplay) transmissionLevelDisplay.textContent = upgrades.transmissionLevel;
+    
+    if (enginePowerDisplay) {
+        const hp = Math.round(130 * getEnginePowerMultiplier(upgrades.engineLevel));
+        const label = upgrades.engineLevel >= 20 ? 'F1' : upgrades.engineLevel >= 10 ? 'Sport' : 'Corolla';
+        enginePowerDisplay.textContent = `${hp} HP (${label})`;
+    }
+    
+    if (transmissionDesc) {
+        transmissionDesc.textContent = getTransmissionDescription(upgrades.transmissionLevel);
+    }
+    
+    // Désactiver les boutons si niveau max ou pas assez d'argent
+    if (buyEngineButton) {
+        const canBuy = upgrades.engineLevel < 20 && game.cash >= UPGRADE_COST;
+        buyEngineButton.disabled = !canBuy;
+        buyEngineButton.classList.toggle('is-disabled', !canBuy);
+    }
+    
+    if (buyTransmissionButton) {
+        const canBuy = upgrades.transmissionLevel < 5 && game.cash >= UPGRADE_COST;
+        buyTransmissionButton.disabled = !canBuy;
+        buyTransmissionButton.classList.toggle('is-disabled', !canBuy);
+    }
+}
+
 function recalculateGearProfile() {
+    const transConfig = getTransmissionConfig(upgrades.transmissionLevel);
+    const maxGear = transConfig.gears;
+    const speedBoost = transConfig.speedMultiplier;
+    
     gearProfile = baseGearProfile.map((entry) => (entry ? { ...entry } : null));
-    for (let gear = 1; gear <= MAX_GEAR; gear += 1) {
+    
+    for (let gear = 1; gear <= maxGear; gear += 1) {
         const base = baseGearProfile[gear];
+        if (!base) continue;
+        
         const ratio = tuning.gearMultipliers[gear];
         const accelRatio = Math.pow(Math.max(0.6, ratio), -0.6);
         gearProfile[gear] = {
-            topSpeed: base.topSpeed * ratio,
+            topSpeed: base.topSpeed * ratio * speedBoost,
             accelFactor: base.accelFactor * accelRatio
         };
+    }
+    
+    // Nullifier les vitesses au-delà du max de la transmission
+    for (let gear = maxGear + 1; gear <= MAX_GEAR; gear += 1) {
+        gearProfile[gear] = null;
     }
 }
 
@@ -582,6 +846,36 @@ if (nitroButton) {
 
 if (garageButton && garageOverlay) {
     garageButton.addEventListener('click', () => openGarage());
+}
+
+// Onglets du garage
+if (tabUpgrades) {
+    tabUpgrades.addEventListener('click', () => switchGarageTab('upgrades'));
+}
+if (tabSettings) {
+    tabSettings.addEventListener('click', () => switchGarageTab('settings'));
+}
+
+// Boutons d'achat d'upgrades
+if (buyEngineButton) {
+    buyEngineButton.addEventListener('click', () => buyUpgrade('engine'));
+}
+if (buyTransmissionButton) {
+    buyTransmissionButton.addEventListener('click', () => buyUpgrade('transmission'));
+}
+
+function switchGarageTab(tabName) {
+    if (tabName === 'upgrades') {
+        if (tabUpgrades) tabUpgrades.classList.add('active');
+        if (tabSettings) tabSettings.classList.remove('active');
+        if (upgradesPanel) upgradesPanel.classList.add('active');
+        if (settingsPanel) settingsPanel.classList.remove('active');
+    } else if (tabName === 'settings') {
+        if (tabUpgrades) tabUpgrades.classList.remove('active');
+        if (tabSettings) tabSettings.classList.add('active');
+        if (upgradesPanel) upgradesPanel.classList.remove('active');
+        if (settingsPanel) settingsPanel.classList.add('active');
+    }
 }
 
 // Boutons de vision
@@ -915,7 +1209,10 @@ function handleShift() {
         return;
     }
 
-    if (player.gear >= MAX_GEAR) {
+    const transConfig = getTransmissionConfig(upgrades.transmissionLevel);
+    const maxGear = transConfig.gears;
+    
+    if (player.gear >= maxGear) {
         setShiftFeedback('Dernière vitesse', '#d6ddff', false);
         return;
     }
@@ -925,11 +1222,18 @@ function handleShift() {
     let feedback;
     let tint;
 
-    if (rpmBefore >= RPM_SHIFT_MIN && rpmBefore <= RPM_SHIFT_MAX) {
+    // Zone verte optimale: 5800-7300
+    if (rpmBefore >= RPM_SHIFT_MAX && rpmBefore <= RPM_GREEN_END) {
         feedback = 'Parfait !';
         momentumDelta = 0.32;
         tint = '#7cffb0';
-    } else if (rpmBefore > RPM_SHIFT_MAX && rpmBefore <= RPM_REDLINE + 600) {
+    // Zone jaune (trop tôt): 5000-5800
+    } else if (rpmBefore >= RPM_SHIFT_MIN && rpmBefore < RPM_SHIFT_MAX) {
+        feedback = 'Un peu tôt';
+        momentumDelta = -0.12;
+        tint = '#ffe66d';
+    // Zone rouge (trop tard): 7300-7900
+    } else if (rpmBefore > RPM_GREEN_END && rpmBefore <= RPM_REDLINE + 600) {
         feedback = 'Trop tard';
         momentumDelta = -0.2;
         tint = '#ffad60';
@@ -938,6 +1242,7 @@ function handleShift() {
         momentumDelta = -0.32;
         tint = '#ff6b6b';
     } else {
+        // Très trop tôt (< 5000)
         feedback = 'Trop tôt';
         momentumDelta = -0.18;
         tint = '#ffe66d';
@@ -945,9 +1250,9 @@ function handleShift() {
 
     const isPerfectShift = feedback === 'Parfait !';
     player.shiftMomentum = clamp(player.shiftMomentum + momentumDelta, -0.4, 0.45);
-    player.shiftsTaken = Math.min(player.shiftsTaken + 1, MAX_GEAR - 1);
+    player.shiftsTaken = Math.min(player.shiftsTaken + 1, maxGear - 1);
     if (isPerfectShift) {
-        player.perfectShifts = Math.min(player.perfectShifts + 1, MAX_GEAR);
+        player.perfectShifts = Math.min(player.perfectShifts + 1, maxGear);
     }
     setShiftFeedback(feedback, tint, true);
 
@@ -1092,6 +1397,7 @@ function openGarage() {
         return;
     }
     updateGarageUI();
+    updateUpgradesUI();
     garageOverlay.hidden = false;
     garageOverlay.style.display = 'flex';
 }
@@ -1171,6 +1477,11 @@ function initializeGarageUI() {
     }
     gearSliderList.innerHTML = '';
     gearSliders.length = MAX_GEAR + 1;
+    
+    const transConfig = getTransmissionConfig(upgrades.transmissionLevel);
+    const isAdjustable = transConfig.adjustable;
+    const adjustRange = transConfig.adjustRange;
+    
     for (let gear = 1; gear <= MAX_GEAR; gear += 1) {
         const group = document.createElement('div');
         group.className = 'slider-group';
@@ -1183,10 +1494,11 @@ function initializeGarageUI() {
         const slider = document.createElement('input');
         slider.type = 'range';
         slider.id = sliderId;
-        slider.min = '0.75';
-        slider.max = '1.3';
+        slider.min = adjustRange.min.toFixed(2);
+        slider.max = adjustRange.max.toFixed(2);
         slider.step = '0.01';
         slider.value = tuning.gearMultipliers[gear].toFixed(2);
+        slider.disabled = !isAdjustable;
 
         const valueDisplay = document.createElement('span');
         valueDisplay.className = 'slider-value';
@@ -1194,7 +1506,7 @@ function initializeGarageUI() {
 
         slider.addEventListener('input', () => {
             const rawValue = Number(slider.value);
-            const clamped = clamp(rawValue, 0.75, 1.3);
+            const clamped = clamp(rawValue, adjustRange.min, adjustRange.max);
             tuning.gearMultipliers[gear] = Number(clamped.toFixed(2));
             valueDisplay.textContent = `${tuning.gearMultipliers[gear].toFixed(2)}×`;
             recalculateGearProfile();
@@ -1305,9 +1617,15 @@ function update(dt) {
 
 function updatePlayer(dt) {
     const profile = gearProfile[player.gear];
+    if (!profile) {
+        // Vitesse inexistante (au-delà de la transmission disponible)
+        return;
+    }
+    
     const stageBoost = 1 + (game.stage - 1) * 0.025;
     const momentumBoost = 1 + player.shiftMomentum * 0.5;
-    const engineBoost = tuning.enginePower;
+    const enginePowerMult = getEnginePowerMultiplier(upgrades.engineLevel);
+    const engineBoost = tuning.enginePower * enginePowerMult;
     const nitroBoost = player.nitroActive ? tuning.nitroPower : 1;
     const rpmGainBase = profile.accelFactor * 1400 * engineBoost;
 
@@ -1322,21 +1640,31 @@ function updatePlayer(dt) {
         player.rpm -= engineBrake * dt;
     }
 
+    // Pénalité zone rouge: moteur flotte, perte de puissance progressive
+    let redlinePenalty = 0;
+    if (player.rpm > RPM_GREEN_END) {
+        // Au-delà de 7300 RPM, pénalité croissante
+        const overRed = Math.max(0, player.rpm - RPM_GREEN_END);
+        redlinePenalty = Math.min(1, overRed / 700); // Max pénalité à ~8000 RPM
+        player.limiterPenalty = clamp(player.limiterPenalty + dt * 2.2, 0, 1);
+    } else {
+        player.limiterPenalty = clamp(player.limiterPenalty - dt * 2.8, 0, 1);
+    }
+
     if (player.rpm > RPM_MAX) {
         player.rpm = Math.min(player.rpm, RPM_MAX + 180);
-        player.limiterPenalty = clamp(player.limiterPenalty + dt * 1.6, 0, 1);
-    } else {
-        player.limiterPenalty = clamp(player.limiterPenalty - dt * 2.2, 0, 1);
+        player.limiterPenalty = Math.max(player.limiterPenalty, 0.8);
     }
 
     player.rpm = clamp(player.rpm, RPM_IDLE, RPM_MAX + 180);
 
     const rpmRatio = clamp((player.rpm - RPM_IDLE) / (RPM_MAX - RPM_IDLE), 0, 1);
-    const limiterFactor = 1 - player.limiterPenalty * 0.55;
+    // Facteur combiné: limiter + zone rouge
+    const totalLimiter = 1 - Math.max(player.limiterPenalty * 0.55, redlinePenalty * 0.4);
 
     if (player.throttle) {
         const baseAccel = 16;
-        let acceleration = baseAccel * profile.accelFactor * (0.28 + rpmRatio * 0.88) * momentumBoost * limiterFactor;
+        let acceleration = baseAccel * profile.accelFactor * (0.28 + rpmRatio * 0.88) * momentumBoost * totalLimiter;
         acceleration *= engineBoost * nitroBoost;
         acceleration = Math.max(0, acceleration);
         player.speed += acceleration * dt;
@@ -1719,9 +2047,15 @@ function drawRpmGauge() {
     rpmCtx.lineWidth = 22;
     rpmCtx.stroke();
 
-    drawGaugeArc(centerX, centerY, radius, startAngle, endAngle, RPM_SHIFT_MIN / RPM_MAX, RPM_SHIFT_MAX / RPM_MAX, '#7cffb0');
-    drawGaugeArc(centerX, centerY, radius, startAngle, endAngle, RPM_SHIFT_MAX / RPM_MAX, 1, '#ff6b6b');
-    drawGaugeArc(centerX, centerY, radius, startAngle, endAngle, 0, RPM_SHIFT_MIN / RPM_MAX, '#3b3f56');
+    // Zones RPM: Jaune 5000-5800, Vert 5800-7300, Rouge 7300+
+    const yellowStart = RPM_SHIFT_MIN / RPM_MAX;       // 5000/8000 = 0.625
+    const greenStart = RPM_SHIFT_MAX / RPM_MAX;        // 5800/8000 = 0.725
+    const greenEnd = RPM_GREEN_END / RPM_MAX;          // 7300/8000 = 0.9125
+    
+    drawGaugeArc(centerX, centerY, radius, startAngle, endAngle, 0, yellowStart, '#3b3f56');           // Gris avant jaune
+    drawGaugeArc(centerX, centerY, radius, startAngle, endAngle, yellowStart, greenStart, '#ffe66d');  // Jaune
+    drawGaugeArc(centerX, centerY, radius, startAngle, endAngle, greenStart, greenEnd, '#7cffb0');     // Vert optimal
+    drawGaugeArc(centerX, centerY, radius, startAngle, endAngle, greenEnd, 1, '#ff6b6b');              // Rouge danger
 
     rpmCtx.lineWidth = 3;
     for (let i = 0; i <= 8; i++) {

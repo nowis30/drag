@@ -92,24 +92,58 @@
     <div id="garageOverlay" class="garage-overlay" hidden>
         <div class="garage-panel" role="dialog" aria-modal="true" aria-labelledby="garageTitle">
             <header class="garage-header">
-                <h2 id="garageTitle">Garage &amp; Réglages</h2>
+                <h2 id="garageTitle">Garage</h2>
                 <button id="closeGarageButton" class="icon-button" type="button" aria-label="Fermer le garage">&times;</button>
             </header>
+            
+            <div class="garage-tabs">
+                <button id="tabUpgrades" class="garage-tab active" type="button" data-tab="upgrades">Améliorations</button>
+                <button id="tabSettings" class="garage-tab" type="button" data-tab="settings">Réglages</button>
+            </div>
+            
             <div class="garage-content">
-                <section class="garage-section">
+                <!-- Onglet Améliorations (Upgrades) -->
+                <section id="upgradesPanel" class="garage-section tab-panel active">
+                    <div class="upgrade-card">
+                        <h3>Moteur</h3>
+                        <p class="upgrade-description">
+                            Niveau <span id="engineLevelDisplay">1</span>/20<br>
+                            <span id="enginePowerDisplay">130 HP</span> (Corolla)
+                        </p>
+                        <div class="upgrade-actions">
+                            <button id="buyEngineButton" class="primary-button" type="button">
+                                Améliorer - 1 000 000 $ + <span class="reward-icon">📺</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="upgrade-card">
+                        <h3>Transmission</h3>
+                        <p class="upgrade-description">
+                            Niveau <span id="transmissionLevelDisplay">1</span>/5<br>
+                            <span id="transmissionDesc">5 vitesses Corolla (fixe)</span>
+                        </p>
+                        <div class="upgrade-actions">
+                            <button id="buyTransmissionButton" class="primary-button" type="button">
+                                Améliorer - 1 000 000 $ + <span class="reward-icon">📺</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Onglet Réglages (Settings) -->
+                <section id="settingsPanel" class="garage-section tab-panel">
                     <h3>Étagement des vitesses</h3>
                     <p class="section-hint">Ajuste les ratios pour espacer ou rapprocher les rapports. 1.00 = valeur d'origine.</p>
                     <div class="slider-list" id="gearSliderList"></div>
-                </section>
-                <section class="garage-section">
+                    
                     <h3>Moteur</h3>
                     <div class="slider-group">
                         <label for="engineSlider">Force moteur</label>
                         <input id="engineSlider" type="range" min="0.9" max="1.7" step="0.05" value="1.0" />
                         <span id="engineValue" class="slider-value">1.00×</span>
                     </div>
-                </section>
-                <section class="garage-section">
+                    
                     <h3>Nitro</h3>
                     <div class="slider-group">
                         <label for="nitroPowerSlider">Puissance</label>
@@ -128,6 +162,7 @@
                     </div>
                 </section>
             </div>
+            
             <footer class="garage-footer">
                 <button id="resetGarageButton" class="secondary-button" type="button">Réinitialiser</button>
                 <button id="applyGarageButton" class="primary-button" type="button">Appliquer</button>
