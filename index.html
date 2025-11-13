@@ -87,21 +87,26 @@
                 </div>
             </div>
             
-            <!-- Barre de contrôles sous la piste: Gaz → Cadran → Nitro → Shifter -->
+            <!-- Barre de contrôles sous la piste: à gauche Gaz + Nitro, au centre le cadran, à droite le Shifter -->
             <div class="race-controls" id="raceControls">
-                <button id="gasButton" class="pedal-button" type="button" aria-label="Pédale d'accélérateur">Accélérer</button>
+                <div class="race-left">
+                    <button id="gasButton" class="pedal-button" type="button" aria-label="Pédale d'accélérateur">Accélérer</button>
+                    <button id="nitroButton" class="nitro-button" type="button" aria-label="Activer le nitro">Nitro</button>
+                </div>
                 
-                <div class="gauge-panel">
-                    <canvas id="rpmCanvas" width="280" height="280"></canvas>
-                    <div class="gear-display">
-                        <span class="gear-label">Rapport</span>
-                        <span class="gear-value" id="gearValue">N</span>
+                <div class="race-center">
+                    <div class="gauge-panel">
+                        <canvas id="rpmCanvas" width="280" height="280"></canvas>
+                        <div class="gear-display">
+                            <span class="gear-label">Rapport</span>
+                            <span class="gear-value" id="gearValue">N</span>
+                        </div>
                     </div>
                 </div>
                 
-                <button id="nitroButton" class="nitro-button" type="button" aria-label="Activer le nitro">Nitro</button>
-                
-                <button id="shiftButton" class="pedal-button shift-mode" type="button" aria-label="Changer de vitesse">SHIFT</button>
+                <div class="race-right">
+                    <button id="shiftButton" class="pedal-button shift-mode" type="button" aria-label="Changer de vitesse">SHIFT</button>
+                </div>
             </div>
         </section>
     </main>

@@ -100,11 +100,11 @@ body {
 
 .race-controls {
     display: flex;
-    justify-content: center;
     align-items: center;
-    gap: 20px;
+    justify-content: space-between;
+    gap: 16px;
     width: 100%;
-    max-width: 900px;
+    max-width: 1000px;
     padding: 16px;
     background: rgba(9, 10, 17, 0.4);
     backdrop-filter: saturate(120%) blur(6px);
@@ -113,11 +113,23 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.race-left,
+.race-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.race-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+}
+
 @media (max-width: 768px) {
-    .race-controls {
-        gap: 12px;
-        padding: 12px;
-    }
+    .race-controls { gap: 12px; padding: 12px; }
+    .race-left, .race-right { gap: 12px; }
     
     .pedal-button,
     .nitro-button {
@@ -134,10 +146,7 @@ body {
         padding: 12px;
     }
     
-    #rpmCanvas {
-        width: 160px;
-        height: 160px;
-    }
+    #rpmCanvas { width: 160px; height: 160px; }
 }
 
 .game-actions {
