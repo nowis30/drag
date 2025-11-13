@@ -102,6 +102,25 @@ body {
     display: flex;
     gap: 16px;
     flex-wrap: wrap;
+
+/* Vision améliorée */
+body.view-large .auth-bar,
+body.view-large .footer {
+    display: none !important;
+}
+body.view-large .hud {
+    transform: scale(1.06);
+    transform-origin: top left;
+}
+body.view-hide-gauge .gauge-panel {
+    display: none !important;
+}
+
+@media (max-width: 640px) {
+    body.view-large .hud {
+        transform: scale(1.02);
+    }
+}
     justify-content: center;
 }
 

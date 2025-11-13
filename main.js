@@ -154,10 +154,46 @@ const nitroDurationValue = document.getElementById('nitroDurationValue');
 const nitroChargesSlider = document.getElementById('nitroChargesSlider');
 const nitroChargesValue = document.getElementById('nitroChargesValue');
 const gaugePanel = document.querySelector('.gauge-panel');
+const viewLargeButton = document.getElementById('viewLargeButton');
+const toggleGaugeButton = document.getElementById('toggleGaugeButton');
 if (gaugePanel) {
     gaugePanel.style.zIndex = '260';
     gaugePanel.style.pointerEvents = 'none';
 }
+
+// Etat de vision/affichage pour améliorer la lisibilité
+const viewState = {
+    large: false,
+    hideGauge: false,
+};
+
+function loadViewState() {
+    try {
+        const raw = localStorage.getItem('drag-view-state');
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        viewState.large = !!s.large;
+        viewState.hideGauge = !!s.hideGauge;
+    } catch {}
+}
+
+function saveViewState() {
+    try { localStorage.setItem('drag-view-state', JSON.stringify(viewState)); } catch {}
+}
+
+function applyViewState() {
+    const body = document.body;
+    if (!body) return;
+    body.classList.toggle('view-large', viewState.large);
+    body.classList.toggle('view-hide-gauge', viewState.hideGauge);
+    if (viewLargeButton) viewLargeButton.textContent = viewState.large ? 'Vue std' : 'Vue XL';
+    if (toggleGaugeButton) toggleGaugeButton.textContent = viewState.hideGauge ? 'Afficher cadran' : 'Masquer cadran';
+    // recalculer la taille des canvases car la hauteur utile change
+    try { resizeCanvases(); } catch {}
+}
+
+loadViewState();
+applyViewState();
 // Sections de mise en page à basculer selon l'état
 const hudSection = document.querySelector('.hud');
 const playfield = document.querySelector('.playfield');
@@ -173,7 +209,8 @@ function resizeCanvases() {
         // On tente de remplir la largeur, en respectant 16:9, et sans dépasser la hauteur
         let cssWidth = vw - 16; // petite marge
         let cssHeight = Math.round(cssWidth * 9 / 16);
-        const maxHeight = vh - 170; // tenir compte des boutons + hud
+        // En vue large, on réserve moins d'espace vertical aux contrôles
+        const maxHeight = vh - (viewState.large ? 80 : 170);
         if (cssHeight > maxHeight) {
             cssHeight = Math.max(200, maxHeight);
             cssWidth = Math.round(cssHeight * 16 / 9);
@@ -544,6 +581,22 @@ if (nitroButton) {
 
 if (garageButton && garageOverlay) {
     garageButton.addEventListener('click', () => openGarage());
+}
+
+// Boutons de vision
+if (viewLargeButton) {
+    viewLargeButton.addEventListener('click', () => {
+        viewState.large = !viewState.large;
+        saveViewState();
+        applyViewState();
+    });
+}
+if (toggleGaugeButton) {
+    toggleGaugeButton.addEventListener('click', () => {
+        viewState.hideGauge = !viewState.hideGauge;
+        saveViewState();
+        applyViewState();
+    });
 }
 
 if (closeGarageButton) {
