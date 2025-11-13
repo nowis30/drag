@@ -418,8 +418,8 @@ const TRACK_LENGTH_METERS = 380;
 const RPM_IDLE = 1200;
 const RPM_MAX = 8000;
 const RPM_SHIFT_MIN = 5000;  // Zone jaune commence
-const RPM_SHIFT_MAX = 5800;  // Zone verte commence
-const RPM_GREEN_END = 7300;  // Zone verte finit, rouge commence
+const RPM_SHIFT_MAX = 6300;  // Zone verte commence (nouvelle borne)
+const RPM_GREEN_END = 6800;  // Fin du vert, rouge dès 6800
 const RPM_REDLINE = 7500;
 const MAX_GEAR = 8;
 
@@ -1443,30 +1443,28 @@ function handleShift() {
     let feedback;
     let tint;
 
-    // Zone verte optimale: 5800-7300
-    if (rpmBefore >= RPM_SHIFT_MAX && rpmBefore <= RPM_GREEN_END) {
-        feedback = 'Parfait !';
-        momentumDelta = 0.32;
-        tint = '#7cffb0';
-    // Zone jaune (trop tôt): 5000-5800
+    // Nouvelle logique de poussée sur changement de rapport
+    // < 5000 : mini poussée
+    // 5000-6300 (jaune): bonne poussée
+    // 6300-6800 (vert): très bonne poussée (x2)
+    // > 6800 (rouge): pas de poussée
+    if (rpmBefore < RPM_SHIFT_MIN) {
+        feedback = 'Mini poussée';
+        momentumDelta = 0.06;
+        tint = '#ffe66d';
     } else if (rpmBefore >= RPM_SHIFT_MIN && rpmBefore < RPM_SHIFT_MAX) {
-        feedback = 'Un peu tôt';
-        momentumDelta = -0.12;
-        tint = '#ffe66d';
-    // Zone rouge (trop tard): 7300-7900
-    } else if (rpmBefore > RPM_GREEN_END && rpmBefore <= RPM_REDLINE + 600) {
-        feedback = 'Trop tard';
-        momentumDelta = -0.2;
-        tint = '#ffad60';
-    } else if (rpmBefore > RPM_REDLINE + 600) {
-        feedback = 'Au rupteur';
-        momentumDelta = -0.32;
-        tint = '#ff6b6b';
+        feedback = 'Bonne poussée';
+        momentumDelta = 0.20;
+        tint = '#ffd166';
+    } else if (rpmBefore >= RPM_SHIFT_MAX && rpmBefore <= RPM_GREEN_END) {
+        feedback = 'Poussée parfaite !';
+        momentumDelta = 0.40; // x2 vs jaune
+        tint = '#7cffb0';
     } else {
-        // Très trop tôt (< 5000)
-        feedback = 'Trop tôt';
-        momentumDelta = -0.18;
-        tint = '#ffe66d';
+        // Rouge: pas de poussée
+        feedback = 'Zone rouge';
+        momentumDelta = 0.0;
+        tint = '#ff6b6b';
     }
 
     const isPerfectShift = feedback === 'Parfait !';
@@ -1871,8 +1869,13 @@ function updatePlayer(dt) {
     if (player.throttle) {
         const baseAccel = 16;
         let acceleration = baseAccel * profile.accelFactor * (0.28 + rpmRatio * 0.88) * momentumBoost * totalLimiter;
-        acceleration *= engineBoost * nitroBoost;
-        acceleration = Math.max(0, acceleration);
+        // Si on est en zone rouge (> 6800), il n'y a plus d'accélération
+        if (player.rpm >= RPM_GREEN_END) {
+            acceleration = 0;
+        } else {
+            acceleration *= engineBoost * nitroBoost;
+            acceleration = Math.max(0, acceleration);
+        }
         player.speed += acceleration * dt;
     } else {
         const coastDrag = 24 + player.speed * 0.2;
