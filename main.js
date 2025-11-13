@@ -150,6 +150,7 @@ const startButton = document.getElementById('startButton');
 const gearValue = document.getElementById('gearValue');
 const gasButton = document.getElementById('gasButton');
 const nitroButton = document.getElementById('nitroButton');
+const shiftButton = document.getElementById('shiftButton');
 const garageButton = document.getElementById('garageButton');
 const garageOverlay = document.getElementById('garageOverlay');
 const closeGarageButton = document.getElementById('closeGarageButton');
@@ -165,6 +166,7 @@ const nitroDurationValue = document.getElementById('nitroDurationValue');
 const nitroChargesSlider = document.getElementById('nitroChargesSlider');
 const nitroChargesValue = document.getElementById('nitroChargesValue');
 const gaugePanel = document.querySelector('.gauge-panel');
+const raceControls = document.getElementById('raceControls');
 const viewLargeButton = document.getElementById('viewLargeButton');
 const toggleGaugeButton = document.getElementById('toggleGaugeButton');
 const fullscreenButton = document.getElementById('fullscreenButton');
@@ -179,10 +181,6 @@ const transmissionLevelDisplay = document.getElementById('transmissionLevelDispl
 const transmissionDesc = document.getElementById('transmissionDesc');
 const buyEngineButton = document.getElementById('buyEngineButton');
 const buyTransmissionButton = document.getElementById('buyTransmissionButton');
-if (gaugePanel) {
-    gaugePanel.style.zIndex = '260';
-    gaugePanel.style.pointerEvents = 'none';
-}
 
 // Etat de vision/affichage pour améliorer la lisibilité
 const viewState = {
@@ -780,11 +778,6 @@ if (gasButton) {
 
     gasButton.addEventListener('pointerdown', (event) => {
         event.preventDefault();
-        // Pendant la course, le gros bouton sert à SHIFTER
-        if (game.state === 'running') {
-            handleShift();
-            return;
-        }
         if (activeThrottlePointer === null) {
             activeThrottlePointer = event.pointerId;
             if (gasButton.setPointerCapture) {
@@ -804,6 +797,15 @@ if (gasButton) {
 
     gasButton.addEventListener('lostpointercapture', releaseThrottle);
     gasButton.addEventListener('contextmenu', (event) => event.preventDefault());
+}
+
+// Bouton Shift dédié
+if (shiftButton) {
+    shiftButton.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        handleShift();
+    });
+    shiftButton.addEventListener('contextmenu', (event) => event.preventDefault());
 }
 
 if (nitroButton) {
@@ -1112,7 +1114,6 @@ function resetPlayer() {
     hudShift.style.color = 'rgba(255,255,255,0.8)';
     updateNitroButton();
     updateGearDisplay();
-    setShiftButtonMode(false);
 }
 
 function setupOpponent() {
@@ -1325,19 +1326,6 @@ function setShiftFeedback(text, tint, includeCount = false) {
 }
 
 // Bascule le gros bouton en mode SHIFTER pendant la course
-function setShiftButtonMode(enabled) {
-    if (!gasButton) return;
-    if (enabled) {
-        gasButton.textContent = 'SHIFT';
-        gasButton.setAttribute('aria-label', 'Changer de vitesse');
-        gasButton.classList.add('shift-mode');
-    } else {
-        gasButton.textContent = 'Accélérer';
-        gasButton.setAttribute('aria-label', "Pédale d'accélérateur");
-        gasButton.classList.remove('shift-mode');
-    }
-}
-
 function setBanner(text, duration = 2, tint = '') {
     statusBanner.textContent = text;
     statusBanner.style.color = tint || 'rgba(220,230,255,0.8)';
@@ -1383,8 +1371,7 @@ function setGaugeVisible(visible) {
 }
 
 function setRaceControlsVisible(visible) {
-    if (gasButton) gasButton.style.display = visible ? '' : 'none';
-    if (nitroButton) nitroButton.style.display = visible ? '' : 'none';
+    if (raceControls) raceControls.style.display = visible ? 'flex' : 'none';
 }
 
 function setTrackVisible(visible) {
@@ -1571,10 +1558,9 @@ function update(dt) {
                     applyRaceLaunch();
                     setBanner('GO !', 1.2, '#7cffb0');
                     game.state = 'running';
-                    // Auto‑throttle et bouton principal en mode shifter
+                    // Auto‑throttle
                     try { throttleState.keyboard = true; } catch {}
                     updateThrottleState();
-                    setShiftButtonMode(true);
                     game.timer = 0;
                     startButton.textContent = 'Course en cours';
                     updateGearDisplay();
@@ -1786,7 +1772,6 @@ async function finishRace(playerWins) {
     setStatusBannerVisible(true);
     setFooterVisible(true);
     resetThrottle();
-    setShiftButtonMode(false);
     activeThrottlePointer = null;
     activeNitroPointer = null;
     player.nitroActive = false;

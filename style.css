@@ -88,7 +88,7 @@ body {
     background: rgba(10, 12, 18, 0.9);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
-    padding: 16px 16px 180px;
+    padding: 16px;
     box-shadow: 0 24px 45px rgba(5, 6, 10, 0.55);
     display: flex;
     flex-direction: column;
@@ -96,6 +96,48 @@ body {
     gap: 18px;
     width: 100%;
     max-width: 100vw;
+}
+
+.race-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    max-width: 900px;
+    padding: 16px;
+    background: rgba(9, 10, 17, 0.4);
+    backdrop-filter: saturate(120%) blur(6px);
+    -webkit-backdrop-filter: saturate(120%) blur(6px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 768px) {
+    .race-controls {
+        gap: 12px;
+        padding: 12px;
+    }
+    
+    .pedal-button,
+    .nitro-button {
+        width: 90px;
+        height: 90px;
+        font-size: 13px;
+    }
+    
+    .pedal-button.shift-mode {
+        font-size: 18px;
+    }
+    
+    .gauge-panel {
+        padding: 12px;
+    }
+    
+    #rpmCanvas {
+        width: 160px;
+        height: 160px;
+    }
 }
 
 .game-actions {
@@ -188,37 +230,26 @@ body.view-hide-gauge .gauge-panel { display: none !important; }
 }
 
 .pedal-button {
-    position: absolute;
-    bottom: 32px;
-    right: 32px;
-    width: 140px;
-    height: 140px;
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
     border: none;
     outline: none;
     background: radial-gradient(circle at 30% 30%, #ffe082 0%, #ff6f61 55%, #f9417a 100%);
     color: #1a1629;
-.hud,
-.game-actions {
-    background: rgba(9, 10, 17, 0.35);
-    backdrop-filter: saturate(120%) blur(6px);
-    -webkit-backdrop-filter: saturate(120%) blur(6px);
-    border-radius: 14px;
-    box-shadow: 0 6px 26px rgba(0,0,0,0.35);
-    padding: 10px 12px;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     cursor: pointer;
-    box-shadow: 0 20px 36px rgba(249, 65, 122, 0.32);
+    box-shadow: 0 12px 24px rgba(249, 65, 122, 0.32);
     transition: transform 0.16s ease, box-shadow 0.16s ease;
     touch-action: none;
 }
 
 .pedal-button.is-active {
     transform: scale(0.96);
-    box-shadow: 0 14px 24px rgba(249, 65, 122, 0.28);
+    box-shadow: 0 8px 18px rgba(249, 65, 122, 0.28);
 }
 
 .pedal-button:active {
@@ -228,25 +259,23 @@ body.view-hide-gauge .gauge-panel { display: none !important; }
 /* Aspect visuel quand le bouton sert de shifter */
 .pedal-button.shift-mode {
     background: radial-gradient(circle at 30% 30%, #b9ffea 0%, #7cffb0 55%, #20c997 100%);
+    font-size: 24px;
 }
 
 .nitro-button {
-    position: absolute;
-    bottom: 32px;
-    left: 32px;
-    width: 140px;
-    height: 140px;
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
     border: none;
     outline: none;
     background: radial-gradient(circle at 30% 30%, #9cd4ff 0%, #5ac8ff 45%, #2a6cff 100%);
     color: #081229;
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     cursor: pointer;
-    box-shadow: 0 20px 36px rgba(52, 133, 255, 0.35);
+    box-shadow: 0 12px 24px rgba(52, 133, 255, 0.35);
     transition: transform 0.16s ease, box-shadow 0.16s ease;
     touch-action: none;
 }
@@ -267,27 +296,17 @@ body.view-hide-gauge .gauge-panel { display: none !important; }
     background: rgba(12, 14, 22, 0.8);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 20px;
-    padding: 24px 28px;
+    padding: 16px 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 18px;
-    box-shadow: 0 20px 36px rgba(0, 0, 0, 0.45);
-}
-
-@media (min-width: 1100px) {
-    .gauge-panel {
-        position: absolute;
-        right: calc(32px + 170px);
-        bottom: 32px;
-        z-index: 260;
-        pointer-events: none;
-    }
+    gap: 12px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
 }
 
 #rpmCanvas {
-    width: 240px;
-    height: 240px;
+    width: 200px;
+    height: 200px;
 }
 
 .gear-display {
