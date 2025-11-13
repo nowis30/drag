@@ -1450,15 +1450,15 @@ function handleShift() {
     // > 6800 (rouge): pas de poussée
     if (rpmBefore < RPM_SHIFT_MIN) {
         feedback = 'Mini poussée';
-        momentumDelta = 0.06;
+        momentumDelta = 0.04;
         tint = '#ffe66d';
     } else if (rpmBefore >= RPM_SHIFT_MIN && rpmBefore < RPM_SHIFT_MAX) {
         feedback = 'Bonne poussée';
-        momentumDelta = 0.20;
+        momentumDelta = 0.18;
         tint = '#ffd166';
     } else if (rpmBefore >= RPM_SHIFT_MAX && rpmBefore <= RPM_GREEN_END) {
-        feedback = 'Poussée parfaite !';
-        momentumDelta = 0.40; // x2 vs jaune
+        feedback = 'Très bonne poussée !';
+        momentumDelta = 0.45; // un peu plus fort pour marquer le vert
         tint = '#7cffb0';
     } else {
         // Rouge: pas de poussée
@@ -1884,7 +1884,13 @@ function updatePlayer(dt) {
     }
 
     const topSpeedBonus = player.nitroActive ? 1.08 : 1;
-    player.speed = Math.min(player.speed, profile.topSpeed * topSpeedBonus);
+    const inGreen = player.rpm >= RPM_SHIFT_MAX && player.rpm <= RPM_GREEN_END;
+    let speedCap = profile.topSpeed * topSpeedBonus;
+    if (inGreen) {
+        // Petit bonus de cap en zone verte pour récompenser la fenêtre idéale
+        speedCap *= 1.02;
+    }
+    player.speed = Math.min(player.speed, speedCap);
 
     // Mise à jour des pics (top speed / top RPM)
     if (player.rpm > player.peakRpm) player.peakRpm = player.rpm;
