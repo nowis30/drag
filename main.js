@@ -156,21 +156,31 @@ if (modeGhostBtn) modeGhostBtn.addEventListener('click', () => { setRaceMode('gh
 // === Réseau / API (intégration Millionnaire) ===
 // Priorité:
 // 1) window.DRAG_API_BASE (forçage manuel)
-// 2) En dev local, utiliser un proxy CORS si présent (ex: local-cors-proxy sur 8010)
+// 2) En dev local (vraiment localhost), utiliser un proxy CORS si présent
 // 3) Sinon, prod Render
 let API_BASE = (window && window.DRAG_API_BASE) ? String(window.DRAG_API_BASE) : '';
 try {
     if (!API_BASE) {
         const host = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : '';
-        const isLocalHost = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(host) || host.startsWith('192.168.');
-        if (isLocalHost) {
-            // Permet d'éviter les erreurs CORS pendant le dev local en utilisant un proxy
-            // Lancez un proxy: npx local-cors-proxy --proxyUrl https://server-jeux-millionnaire.onrender.com --port 8010
+        const protocol = (typeof window !== 'undefined' && window.location && window.location.protocol) ? window.location.protocol : '';
+        
+        // Détecter Capacitor/Cordova (app mobile native)
+        const isCapacitor = protocol === 'capacitor:' || protocol === 'ionic:' || protocol === 'file:';
+        
+        // Vrai localhost = navigateur dev sur machine locale (PAS Capacitor)
+        const isRealLocalHost = !isCapacitor && (/^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(host) || host.startsWith('192.168.'));
+        
+        if (isRealLocalHost) {
+            // Dev local: utiliser proxy CORS
             const devProxy = (window && window.DRAG_DEV_PROXY) ? String(window.DRAG_DEV_PROXY) : 'http://127.0.0.1:8010/proxy';
             API_BASE = devProxy;
             try { console.info('[drag] Mode dev: API via proxy', API_BASE); } catch {}
         } else {
+            // Production OU Capacitor: toujours utiliser Render
             API_BASE = 'https://server-jeux-millionnaire.onrender.com';
+            if (isCapacitor) {
+                try { console.info('[drag] App mobile: API directe', API_BASE); } catch {}
+            }
         }
     }
 } catch (_) { API_BASE = 'https://server-jeux-millionnaire.onrender.com'; }
