@@ -90,9 +90,7 @@
                 <div class="home-actions">
                     <button id="garageButton" class="secondary-button" type="button">Garage &amp; Réglages</button>
                     <div class="spacer"></div>
-                    <button id="viewLargeButton" class="secondary-button" type="button" title="Augmente la zone de jeu (masque certaines barres)">Vue XL</button>
-                    <button id="fullscreenButton" class="secondary-button" type="button" title="Mode plein écran (sortie: Échap)">Plein écran</button>
-                    <button id="toggleGaugeButton" class="secondary-button" type="button" title="Affiche/masque le cadran RPM">Masquer cadran</button>
+                    <button id="exitButton" class="secondary-button" type="button" title="Revenir au Jeu du Millionnaire">Sortir</button>
                 </div>
 
                 <!-- Lancer la course en bas -->
@@ -202,6 +200,22 @@
             <footer class="garage-footer">
                 <button id="resetGarageButton" class="secondary-button" type="button">Réinitialiser</button>
                 <button id="applyGarageButton" class="primary-button" type="button">Appliquer</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Overlay PvP: choisir un adversaire -->
+    <div id="opponentsOverlay" class="garage-overlay" hidden>
+        <div class="garage-panel" role="dialog" aria-modal="true" aria-labelledby="opponentsTitle">
+            <header class="garage-header">
+                <h2 id="opponentsTitle">Choisir un adversaire (PvP)</h2>
+                <button id="closeOpponentsButton" class="icon-button" type="button" aria-label="Fermer">&times;</button>
+            </header>
+            <div class="garage-content">
+                <div id="opponentsList" class="opponents-list"></div>
+            </div>
+            <footer class="garage-footer">
+                <button id="cancelOpponentsButton" class="secondary-button" type="button">Annuler</button>
             </footer>
         </div>
     </div>

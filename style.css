@@ -510,6 +510,26 @@ body.view-hide-gauge .gauge-panel { display: none !important; }
     gap: 28px;
 }
 
+.opponents-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+.opponent-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+}
+.opponent-meta { display: flex; flex-direction: column; gap: 4px; }
+.opponent-name { font-weight: 700; color: #d6ddff; }
+.opponent-stats { font-size: 13px; color: rgba(214,219,240,0.75); }
+.opponent-select { white-space: nowrap; }
+
 .garage-section h3 {
     font-size: 20px;
     margin-bottom: 8px;

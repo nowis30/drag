@@ -35,6 +35,99 @@ const modeSelectEl = document.getElementById('modeSelect');
 const modeWorldBtn = document.getElementById('modeWorld');
 const modePvPBtn = document.getElementById('modePvP');
 const modeGhostBtn = document.getElementById('modeGhost');
+// PvP overlay elements
+const opponentsOverlay = document.getElementById('opponentsOverlay');
+const opponentsList = document.getElementById('opponentsList');
+const closeOpponentsButton = document.getElementById('closeOpponentsButton');
+const cancelOpponentsButton = document.getElementById('cancelOpponentsButton');
+
+// --- PvP: overlay de sélection d'adversaire ---
+function formatOpponentTime(msOrSec) {
+    if (msOrSec == null || !isFinite(msOrSec)) return '—';
+    let sec = Number(msOrSec);
+    if (sec > 120) sec = sec / 1000; // si back renvoie en ms
+    return `${sec.toFixed(2)} s`;
+}
+
+function renderOpponents(items) {
+    if (!opponentsList) return;
+    opponentsList.innerHTML = '';
+    if (!Array.isArray(items) || items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'opponent-item';
+        empty.innerHTML = '<div class="opponent-meta"><div class="opponent-name">Aucun adversaire</div><div class="opponent-stats">Essayez plus tard ou jouez quelques courses pour remplir le classement.</div></div>';
+        opponentsList.appendChild(empty);
+        return;
+    }
+    items.forEach((op) => {
+        const row = document.createElement('div');
+        row.className = 'opponent-item';
+
+        const meta = document.createElement('div');
+        meta.className = 'opponent-meta';
+        const name = document.createElement('div');
+        name.className = 'opponent-name';
+        name.textContent = op?.nickname || `Joueur #${op?.playerId ?? '?'}`;
+        const stats = document.createElement('div');
+        stats.className = 'opponent-stats';
+        const best = (op?.bestMs != null) ? formatOpponentTime(op.bestMs) : '—';
+        const levels = `Moteur ${op?.engineLevel ?? '?'} • Boîte ${op?.transmissionLevel ?? '?'}`;
+        stats.textContent = `Meilleur: ${best} — ${levels}`;
+        meta.appendChild(name);
+        meta.appendChild(stats);
+
+        const select = document.createElement('button');
+        select.className = 'secondary-button opponent-select';
+        select.type = 'button';
+        select.textContent = 'Défier';
+        select.addEventListener('click', () => {
+            selectedOpponent = op || null;
+            closeOpponentsOverlay();
+            const label = op?.nickname || `Joueur #${op?.playerId ?? '?'}`;
+            setBanner(`Adversaire choisi: ${label} (${best})`, 2.2, '#7cffb0');
+        });
+
+        row.appendChild(meta);
+        row.appendChild(select);
+        opponentsList.appendChild(row);
+    });
+}
+
+async function openOpponentsOverlay() {
+    try { if (opponentsOverlay) opponentsOverlay.hidden = false; } catch {}
+    if (opponentsList) opponentsList.innerHTML = '<div class="opponent-item"><div class="opponent-meta"><div class="opponent-name">Chargement…</div></div></div>';
+    try {
+        const sess = await ensureSession();
+        let list = [];
+        try {
+            list = await apiFetch(`/api/games/${sess.gameId}/drag/opponents`);
+        } catch (err) {
+            console.warn('[drag] opponents fetch failed', err);
+            list = [];
+        }
+        // Tri par meilleur temps croissant si non trié
+        if (Array.isArray(list)) {
+            list.sort((a, b) => {
+                const aa = (a?.bestMs ?? Infinity);
+                const bb = (b?.bestMs ?? Infinity);
+                return aa - bb;
+            });
+        }
+        renderOpponents(list);
+        return list;
+    } catch (e) {
+        console.warn('[drag] openOpponentsOverlay error', e);
+        renderOpponents([]);
+        return [];
+    }
+}
+
+function closeOpponentsOverlay() {
+    try { if (opponentsOverlay) opponentsOverlay.hidden = true; } catch {}
+}
+
+if (closeOpponentsButton) closeOpponentsButton.addEventListener('click', closeOpponentsOverlay);
+if (cancelOpponentsButton) cancelOpponentsButton.addEventListener('click', closeOpponentsOverlay);
 startButton.addEventListener('click', () => {
     if (game.state === 'countdown') {
         return;
@@ -45,6 +138,12 @@ startButton.addEventListener('click', () => {
         setBanner('Choisis un mode de course.', 2.2, '#d6ddff');
         return;
     }
+    // En PvP, exiger un adversaire sélectionné
+    if (raceMode === 'pvp' && !selectedOpponent) {
+        setBanner('Choisis un adversaire PvP.', 2.2, '#d6ddff');
+        void openOpponentsOverlay();
+        return;
+    }
     closeGarage();
     closeModeSelect();
     startRace();
@@ -52,7 +151,7 @@ startButton.addEventListener('click', () => {
 
 // Sélecteurs de mode
 if (modeWorldBtn) modeWorldBtn.addEventListener('click', () => { setRaceMode('world'); });
-if (modePvPBtn) modePvPBtn.addEventListener('click', () => { setRaceMode('pvp'); });
+if (modePvPBtn) modePvPBtn.addEventListener('click', async () => { setRaceMode('pvp'); await openOpponentsOverlay(); });
 if (modeGhostBtn) modeGhostBtn.addEventListener('click', () => { setRaceMode('ghost'); });
 // === Réseau / API (intégration Millionnaire) ===
 // Priorité:
@@ -226,6 +325,7 @@ const raceControls = document.getElementById('raceControls');
 const viewLargeButton = document.getElementById('viewLargeButton');
 const toggleGaugeButton = document.getElementById('toggleGaugeButton');
 const fullscreenButton = document.getElementById('fullscreenButton');
+const exitButton = document.getElementById('exitButton');
 // Garage tabs et upgrades UI
 const tabUpgrades = document.getElementById('tabUpgrades');
 const tabSettings = document.getElementById('tabSettings');
@@ -428,6 +528,9 @@ let adInitPromise = null;
 let adShowPromise = null;
 const AD_RACE_INTERVAL = 3;
 const AD_COOLDOWN_MS = 120000;
+
+// Sélection PvP (adversaire choisi)
+let selectedOpponent = null;
 
 function isNativeAdContext() {
     if (typeof window === 'undefined') return false;
@@ -944,6 +1047,30 @@ if (toggleGaugeButton) {
     });
 }
 
+function exitToMillionaire() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const returnTo = params.get('returnTo');
+        if (returnTo) {
+            window.location.href = returnTo;
+            return;
+        }
+        if (document.referrer) {
+            history.back();
+            // En cas d’échec (navigation bloquée), fallback après un court délai
+            setTimeout(() => { try { window.location.href = '/jeux-du-millionaire'; } catch {} }, 250);
+            return;
+        }
+    } catch {}
+    // Fallback générique vers l'accueil du Millionnaire puis racine
+    try { window.location.href = '/jeux-du-millionaire'; }
+    catch { window.location.href = '/'; }
+}
+
+if (exitButton) {
+    exitButton.addEventListener('click', exitToMillionaire);
+}
+
 // Plein écran
 function isFullscreenActive() {
     const d = document;
@@ -1174,6 +1301,22 @@ function setupOpponent() {
     opponent.shiftStumbleTimer = 0;
     opponent.stumbleInterval = null;
 
+    // PvP: si un adversaire a été choisi, caler l'IA sur son meilleur temps
+    if (raceMode === 'pvp' && selectedOpponent && (selectedOpponent.bestMs != null)) {
+        let sec = Number(selectedOpponent.bestMs);
+        if (sec > 120) sec = sec / 1000; // backend renvoie possiblement en ms
+        const pvpTime = Math.max(sec, 6.0);
+        opponent.targetTime = pvpTime;
+        opponent.reactionDelay = clamp(pvpTime * 0.07, 0.16, 0.40);
+        const effectiveTime = Math.max(pvpTime - opponent.reactionDelay, 1.3);
+        const targetKmH = clamp((TRACK_LENGTH_METERS / effectiveTime) * 3.6, 150, 380);
+        opponent.maxSpeed = targetKmH * 1.03;
+        opponent.accel = clamp(targetKmH * 0.92, 52, 165);
+        opponent.handicap = 0.9;
+        opponent.stumbleInterval = 1.4;
+        return;
+    }
+
     // Mode fantôme local (IA sur la 10e meilleure perf perso)
     if (raceMode === 'ghost' || !raceMode) {
         if (playerRaceHistory.length < 2) {
@@ -1196,7 +1339,7 @@ function setupOpponent() {
         return;
     }
 
-    // Modes world/pvp — TODO backend: récupérer meilleurs fantômes
+    // Modes world/pvp — défauts si pas d'adversaire explicite
     opponent.targetTime = null; // pilotage par accel/maxSpeed
     if (raceMode === 'world') {
         // plus dur: adversaire très rapide
