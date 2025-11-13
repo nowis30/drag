@@ -1390,31 +1390,31 @@ function applyRaceLaunch() {
     let launchSpeed;
     let momentumDelta;
 
-    if (rpmAtLaunch < 2800) {
-        feedback = 'Départ trop mou';
-        tint = '#ff6b6b';
-        launchSpeed = 8;
-        momentumDelta = -0.28;
-    } else if (rpmAtLaunch < 4400) {
-        feedback = 'Réaction lente';
+    // Même logique de poussée que pour les shifts
+    if (rpmAtLaunch < RPM_SHIFT_MIN) {
+        // Mini poussée
+        feedback = 'Mini poussée';
         tint = '#ffe66d';
         launchSpeed = 14;
-        momentumDelta = -0.12;
-    } else if (rpmAtLaunch <= 6200) {
-        feedback = 'Départ parfait !';
-        tint = '#7cffb0';
-        launchSpeed = 26;
-        momentumDelta = 0.18;
-    } else if (rpmAtLaunch <= RPM_REDLINE + 300) {
-        feedback = 'Patinage';
-        tint = '#ffad60';
+        momentumDelta = 0.04;
+    } else if (rpmAtLaunch >= RPM_SHIFT_MIN && rpmAtLaunch < RPM_SHIFT_MAX) {
+        // Bonne poussée (jaune)
+        feedback = 'Bonne poussée';
+        tint = '#ffd166';
         launchSpeed = 20;
-        momentumDelta = -0.16;
+        momentumDelta = 0.18;
+    } else if (rpmAtLaunch >= RPM_SHIFT_MAX && rpmAtLaunch <= RPM_GREEN_END) {
+        // Très bonne poussée (vert)
+        feedback = 'Poussée parfaite !';
+        tint = '#7cffb0';
+        launchSpeed = 28;
+        momentumDelta = 0.45;
     } else {
-        feedback = 'Patinage violent';
+        // Rouge: pas de poussée
+        feedback = 'Zone rouge';
         tint = '#ff6b6b';
-        launchSpeed = 15;
-        momentumDelta = -0.28;
+        launchSpeed = 12;
+        momentumDelta = 0.0;
     }
 
     player.speed = launchSpeed;
