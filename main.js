@@ -192,11 +192,24 @@ function getStoredSession() {
 function setStoredSession(s) { try { localStorage.setItem('hm-session', JSON.stringify(s)); } catch {} }
 function clearStoredSession() { try { localStorage.removeItem('hm-session'); } catch {} }
 const TOKEN_SOURCE_KEY = 'hm-token-source';
-function getAuthToken() { try { return localStorage.getItem('hm-token') || null; } catch { return null; } }
+function getAuthToken() {
+    try {
+        // Priorité : token spécifique drag
+        const dragToken = localStorage.getItem('hm-token');
+        if (dragToken) return dragToken;
+        // Fallback : token global utilisé par le client Next
+        const globalToken = localStorage.getItem('HM_TOKEN');
+        return globalToken || null;
+    } catch {
+        return null;
+    }
+}
 function setAuthToken(t, source) {
     try {
         if (t) {
+            // Écrire à la fois le token drag et le token global pour partager la session
             localStorage.setItem('hm-token', t);
+            try { localStorage.setItem('HM_TOKEN', t); } catch {}
             if (source) localStorage.setItem(TOKEN_SOURCE_KEY, source);
         }
     } catch {}
@@ -204,6 +217,8 @@ function setAuthToken(t, source) {
 function clearAuthToken() {
     try {
         localStorage.removeItem('hm-token');
+        // Nettoyer aussi le token global pour forcer une reconnexion propre si nécessaire
+        try { localStorage.removeItem('HM_TOKEN'); } catch {}
         localStorage.removeItem(TOKEN_SOURCE_KEY);
     } catch {}
 }
