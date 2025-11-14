@@ -988,9 +988,24 @@ let lastFrame = performance.now();
 let activeThrottlePointer = null;
 let activeNitroPointer = null;
 
+function isTypingIntoField() {
+    try {
+        const el = document.activeElement;
+        if (!el) return false;
+        const tag = el.tagName;
+        const editable = el.isContentEditable;
+        if (editable) return true;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
+        return false;
+    } catch {
+        return false;
+    }
+}
+
 // startButton: gestion déplacée en haut avec la sélection du mode
 
 window.addEventListener('keydown', (event) => {
+    if (isTypingIntoField()) return;
     if (THROTTLE_KEYS.has(event.code)) {
         event.preventDefault();
         setThrottleSource('keyboard', true);
@@ -1013,6 +1028,7 @@ window.addEventListener('keydown', (event) => {
 });
 
 window.addEventListener('keyup', (event) => {
+    if (isTypingIntoField()) return;
     if (THROTTLE_KEYS.has(event.code)) {
         event.preventDefault();
         setThrottleSource('keyboard', false);
