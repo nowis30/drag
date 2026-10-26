@@ -4,10 +4,13 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --check main.js && node scripts/build-web.mjs --check",
+    "build": "node scripts/build-web.mjs",
     "start": "http-server -p 8080 -c-1 --cors",
     "dev": "http-server -p 8080 -c-1 --cors -o",
-    "deploy": "gh-pages -d www"
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d www",
+    "sync:android": "npm run build && cap sync android"
   },
   "repository": {
     "type": "git",
