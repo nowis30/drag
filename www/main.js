@@ -192,11 +192,24 @@ function getStoredSession() {
 function setStoredSession(s) { try { localStorage.setItem('hm-session', JSON.stringify(s)); } catch {} }
 function clearStoredSession() { try { localStorage.removeItem('hm-session'); } catch {} }
 const TOKEN_SOURCE_KEY = 'hm-token-source';
-function getAuthToken() { try { return localStorage.getItem('hm-token') || null; } catch { return null; } }
+function getAuthToken() {
+    try {
+        // Priorité : token spécifique drag
+        const dragToken = localStorage.getItem('hm-token');
+        if (dragToken) return dragToken;
+        // Fallback : token global utilisé par le client Next
+        const globalToken = localStorage.getItem('HM_TOKEN');
+        return globalToken || null;
+    } catch {
+        return null;
+    }
+}
 function setAuthToken(t, source) {
     try {
         if (t) {
+            // Écrire à la fois le token drag et le token global pour partager la session
             localStorage.setItem('hm-token', t);
+            try { localStorage.setItem('HM_TOKEN', t); } catch {}
             if (source) localStorage.setItem(TOKEN_SOURCE_KEY, source);
         }
     } catch {}
@@ -204,6 +217,8 @@ function setAuthToken(t, source) {
 function clearAuthToken() {
     try {
         localStorage.removeItem('hm-token');
+        // Nettoyer aussi le token global pour forcer une reconnexion propre si nécessaire
+        try { localStorage.removeItem('HM_TOKEN'); } catch {}
         localStorage.removeItem(TOKEN_SOURCE_KEY);
     } catch {}
 }
@@ -466,6 +481,62 @@ applyViewState();
 const hudSection = document.querySelector('.hud');
 const playfield = document.querySelector('.playfield');
 const footerEl = document.querySelector('.footer');
+
+const TYPING_FIELD_SELECTOR = 'input, textarea, select, [contenteditable="true"]';
+let typingGuardActive = false;
+
+function updateTypingGuardActive(target) {
+    try {
+        let el = target;
+        if (!el || el === window) {
+            el = document.activeElement || null;
+        }
+        if (el === document) {
+            el = document.activeElement || null;
+        }
+        if (!el) {
+            typingGuardActive = false;
+            return;
+        }
+        if (typeof el.matches === 'function' && el.matches(TYPING_FIELD_SELECTOR)) {
+            typingGuardActive = true;
+            return;
+        }
+        if (typeof el.closest === 'function') {
+            const field = el.closest(TYPING_FIELD_SELECTOR);
+            if (field) {
+                typingGuardActive = true;
+                return;
+            }
+        }
+        if (authBar && authBar.contains(el)) {
+            typingGuardActive = true;
+            return;
+        }
+        if (authEmail && el === authEmail) {
+            typingGuardActive = true;
+            return;
+        }
+        if (authPassword && el === authPassword) {
+            typingGuardActive = true;
+            return;
+        }
+        typingGuardActive = false;
+    } catch {
+        typingGuardActive = false;
+    }
+}
+
+if (typeof document !== 'undefined' && document.addEventListener) {
+    document.addEventListener('focusin', (event) => {
+        updateTypingGuardActive(event?.target || null);
+    }, true);
+    document.addEventListener('focusout', () => {
+        setTimeout(() => {
+            updateTypingGuardActive(document.activeElement || null);
+        }, 0);
+    }, true);
+}
 
 // Maintenir un 16:9 strict et adapter les canvases à l’écran
 function resizeCanvases() {
@@ -973,9 +1044,56 @@ let lastFrame = performance.now();
 let activeThrottlePointer = null;
 let activeNitroPointer = null;
 
+function isTypingIntoField(event) {
+    if (typingGuardActive) return true;
+    try {
+        const path = (event && typeof event.composedPath === 'function') ? event.composedPath() : null;
+        if (Array.isArray(path)) {
+            for (const node of path) {
+                if (!node || node === window || node === document) continue;
+                if (node === authEmail || node === authPassword) return true;
+                if (typeof node.matches === 'function' && node.matches(TYPING_FIELD_SELECTOR)) {
+                    return true;
+                }
+                if (typeof node.closest === 'function') {
+                    const field = node.closest(TYPING_FIELD_SELECTOR);
+                    if (field) return true;
+                }
+            }
+        }
+
+        let el = (event && event.target) ? event.target : document.activeElement;
+        // Si focus géré via shadow/label, récupérer l'input associé
+        if (el && el.tagName === 'LABEL' && typeof el.htmlFor === 'string' && el.htmlFor.length) {
+            const forEl = document.getElementById(el.htmlFor);
+            if (forEl) el = forEl;
+        }
+        if (!el || el === document) {
+            el = document.activeElement || null;
+        }
+        if (!el) return false;
+        if (authBar && authBar.contains(el)) return true;
+        if (el.isContentEditable) return true;
+        const tag = el.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+        // Certains frameworks encapsulent les inputs (ex: div[data-editable])
+        if (typeof el.closest === 'function') {
+            const wrapper = el.closest(TYPING_FIELD_SELECTOR);
+            if (wrapper) return true;
+        }
+        // Cas spécifiques: champs d'auth de la barre latérale
+        if (authEmail && document.activeElement === authEmail) return true;
+        if (authPassword && document.activeElement === authPassword) return true;
+        return false;
+    } catch {
+        return typingGuardActive;
+    }
+}
+
 // startButton: gestion déplacée en haut avec la sélection du mode
 
 window.addEventListener('keydown', (event) => {
+    if (isTypingIntoField(event)) return;
     if (THROTTLE_KEYS.has(event.code)) {
         event.preventDefault();
         setThrottleSource('keyboard', true);
@@ -998,6 +1116,7 @@ window.addEventListener('keydown', (event) => {
 });
 
 window.addEventListener('keyup', (event) => {
+    if (isTypingIntoField(event)) return;
     if (THROTTLE_KEYS.has(event.code)) {
         event.preventDefault();
         setThrottleSource('keyboard', false);
